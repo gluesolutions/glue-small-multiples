@@ -99,7 +99,7 @@ class SmallMultiplesViewer(MatplotlibDataViewer, PanTrackerMixin):
         super().__init__(session, parent=parent, state=state)
         if self.axes is not None and self.figure is not None:
             self.figure.delaxes(self.axes)
-        self.axes = self.figure.subplots(self.state.num_rows, self.state.num_cols, sharex=True, sharey = True)
+        self.axes = self.figure.subplots(self.state.num_rows, self.state.num_cols, sharex=True, sharey=True)
         #self.axes = self.figure.subplots(2, 2, sharex=True, sharey = True)
         #self._layer_artist_container.on_changed(self.reflow_tracks)
         
