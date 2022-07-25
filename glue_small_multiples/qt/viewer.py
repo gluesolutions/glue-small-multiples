@@ -63,7 +63,11 @@ class SmallMultiplesViewer(MatplotlibDataViewer, PanTrackerMixin):
     _data_artist_cls = SmallMultiplesLayerArtist
     _subset_artist_cls = SmallMultiplesLayerArtist #Do we need a subset artist?
 
-    tools = ['select:xrange']
+    tools = []
+    #tools = ['select:xrange'] #Setting up this tool fails because we have a LIST of axes, not a single one...
+    # In the Genome Track Viewer we have a bunch of child axes underneath a parent, but we only select
+    # on the x axis, so that does not really matter. Here we have so many other complications for these tools
+    # that I think we'll need totally cutom ones.
 
     def __init__(self, session, parent=None, state=None):
         super().__init__(session, parent=parent, state=state)
@@ -76,4 +80,10 @@ class SmallMultiplesViewer(MatplotlibDataViewer, PanTrackerMixin):
         #self.init_pan_tracking(self.axes)
 
 
+    def draw_legend(self, *args):
+        #Old legend logic does not work
+        pass
 
+    def _on_resize(self, *args):
+        #Neither does the aspect_ratio call
+        pass
