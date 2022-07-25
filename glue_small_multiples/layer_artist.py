@@ -1,5 +1,6 @@
 from glue.viewers.matplotlib.layer_artist import MatplotlibLayerArtist
 from glue.viewers.scatter.layer_artist import ScatterLayerArtist
+from glue.utils import defer_draw
 
 from .utils import PanTrackerMixin
 from .state import SmallMultiplesLayerState
@@ -43,9 +44,17 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
     def __init__(self, axes, viewer_state, layer_state=None, layer=None):
         super().__init__(axes, viewer_state, layer_state=layer_state, layer=layer)
 
+        self.axes_subplots = axes
         self.scatter_layer_artists = []
-        flat_axes = axes.flatten()
-                
-        for ax, subset in zip(flat_axes, viewer_state.data_facets):
-            sla = ScatterLayerArtist(ax, viewer_state, layer=subset) 
-            self.append(self.scatter_layer_artists)
+        
+        #self._viewer_state.add_global_callback(self._update_scatter)
+        #self.state.add_global_callback(self._update_scatter)
+
+    @defer_draw
+    def _update_scatter(self, force=False, **kwargs):
+        
+        flat_axes = self.axes_subplots.flatten()
+
+        for ax, subset in zip(flat_axes, self._viewer_state.data_facets):
+            sla = ScatterLayerArtist(ax, self._viewer_state, layer=subset) 
+            self.scatter_layer_artists.append(sla)

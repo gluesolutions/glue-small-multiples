@@ -3,6 +3,7 @@ from glue.viewers.matplotlib.state import (MatplotlibDataViewerState,
                                            DeferredDrawCallbackProperty as DDCProperty,
                                            DeferredDrawSelectionCallbackProperty as DDSCProperty)
 from glue.core.data_combo_helper import ManualDataComboHelper, ComponentIDComboHelper, ComboHelper
+from glue.core.subset import Subset
 from glue.utils import defer_draw, decorate_all_methods
 
 __all__ = ['SmallMultiplesState', 'SmallMultiplesLayerState']
@@ -41,7 +42,7 @@ class SmallMultiplesState(MatplotlibDataViewerState):
     def __init__(self, **kwargs):
         super().__init__()
         self.num_cols = 3 #max(max_num_cols) #len(col_facet_att.codes)
-        self.num_rows = 3
+        self.num_rows = 1
         self.data_facets = [] # We can only initialize this if we have a dataset defined
 
         self.ref_data_helper = ManualDataComboHelper(self, 'reference_data')
@@ -57,18 +58,35 @@ class SmallMultiplesState(MatplotlibDataViewerState):
         self.update_from_dict(kwargs)
 
     def _reference_data_changed(self, *args):
+        """
+        This approach of creating subsets is sort of nice, but it does not
+        exactly make sense, beucase it creates subsets attached to the dataset
+        which (A) show up in all other plots (B) cause recursion problems
+        with scatter_layer_artist and (C) give us multiple layers in the UI, when
+        we don't really want multiple layers to be an option.
+        
+        """
+        
         # This signal can get emitted if just the choices but not the actual
         # reference data change, so we check here that the reference data has
         # actually changed
+        print("Calling _reference_data_changed")
         if self.reference_data is not getattr(self, '_last_reference_data', None):
             self._last_reference_data = self.reference_data
             
             self.data_facets = []
-            if self.col_facet_att is not None:
-                for facet in self.reference_data[self.col_facet_att].categories:
-                    facet_state = self.reference_data.id['self.col_facet_att'] == facet
-                    subset = self.reference_data.new_subset(facet_state, label=facet)
-                    self.data_facets.append(subset)
+        if self.col_facet_att is not None and self.reference_data is not None:
+            self.data_facets = []
+            print("Trying to set self.data_facets")
+            for facet in self.reference_data[self.col_facet_att].categories:
+                facet_state = self.reference_data.id[self.col_facet_att] == facet
+                # We create these subsets manually since we do not want
+                # them to show up outside of this context
+                # (they are not registered to the dataset or the data collection)
+                subset = Subset(self.reference_data,label=facet) 
+                subset.subset_state = facet_state
+                #subset = self.reference_data.new_subset(facet_state, label=facet)
+                self.data_facets.append(subset)
 
     # len(self.multiples) will be max(max_num_cols, len(col_facet_att.codes))
     #self.multiples = {} # This is all the small multiples to be added

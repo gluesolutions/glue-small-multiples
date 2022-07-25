@@ -47,6 +47,32 @@ This approach seems to work. Of course self.axes is now an array
 of the expected shape, so our layer artist will have to know how
 to handle that
 
+The following works:
+
+Load penguins
+Create a SmallMultiplesViewer
+Set x_att, y_att, and col_att to correct things
+
+sm = session.application.viewers[0][0]
+
+sm.state._reference_data_changed()
+Calling _reference_data_changed
+Trying to set self.data_facets
+
+sm.state.data_facets
+Out[3]: 
+[Subset: Adelie (data: penguins),
+ Subset: Chinstrap (data: penguins),
+ Subset: Gentoo (data: penguins)]
+
+sm.layers[0]._update_scatter()
+
+This produces two(?) layer artists in the right axes
+(You need to zoom to see them probably)
+They are red/colors aren't synced to the Data type
+These subsets do not show up anywhere else
+
+
 """
 
 __all__ = ['SmallMultiplesViewer']
