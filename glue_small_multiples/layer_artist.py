@@ -56,5 +56,6 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
         flat_axes = self.axes_subplots.flatten()
 
         for ax, subset in zip(flat_axes, self._viewer_state.data_facets):
-            sla = ScatterLayerArtist(ax, self._viewer_state, layer=subset) 
+            sla = ScatterLayerArtist(ax, self._viewer_state, layer=subset)
+            sla.axes.set_title(subset.label)
             self.scatter_layer_artists.append(sla)

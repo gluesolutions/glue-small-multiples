@@ -58,15 +58,6 @@ class SmallMultiplesState(MatplotlibDataViewerState):
         self.update_from_dict(kwargs)
 
     def _reference_data_changed(self, *args):
-        """
-        This approach of creating subsets is sort of nice, but it does not
-        exactly make sense, beucase it creates subsets attached to the dataset
-        which (A) show up in all other plots (B) cause recursion problems
-        with scatter_layer_artist and (C) give us multiple layers in the UI, when
-        we don't really want multiple layers to be an option.
-        
-        """
-        
         # This signal can get emitted if just the choices but not the actual
         # reference data change, so we check here that the reference data has
         # actually changed
@@ -83,9 +74,8 @@ class SmallMultiplesState(MatplotlibDataViewerState):
                 # We create these subsets manually since we do not want
                 # them to show up outside of this context
                 # (they are not registered to the dataset or the data collection)
-                subset = Subset(self.reference_data,label=facet) 
+                subset = Subset(self.reference_data,label=f"{self.col_facet_att.label}={facet}") 
                 subset.subset_state = facet_state
-                #subset = self.reference_data.new_subset(facet_state, label=facet)
                 self.data_facets.append(subset)
 
     # len(self.multiples) will be max(max_num_cols, len(col_facet_att.codes))
