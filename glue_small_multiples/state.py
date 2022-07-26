@@ -2,6 +2,7 @@ from glue.viewers.matplotlib.state import (MatplotlibDataViewerState,
                                            MatplotlibLayerState,
                                            DeferredDrawCallbackProperty as DDCProperty,
                                            DeferredDrawSelectionCallbackProperty as DDSCProperty)
+from glue.viewers.scatter.state import ScatterLayerState
 from glue.core.data_combo_helper import ManualDataComboHelper, ComponentIDComboHelper, ComboHelper
 from glue.core.subset import Subset
 from glue.utils import defer_draw, decorate_all_methods
@@ -97,7 +98,7 @@ class SmallMultiplesState(MatplotlibDataViewerState):
         self._layers_data_cache = layers_data
 
 
-class SmallMultiplesLayerState(MatplotlibLayerState):
+class SmallMultiplesLayerState(ScatterLayerState):
     """
     This is probably just a ScatterLayerState?
     
@@ -105,4 +106,6 @@ class SmallMultiplesLayerState(MatplotlibLayerState):
     can be here. child axes are NOT separate layers, they don't have separate layer artists,
     so there's no way to deal with them separately. One artist/state draws to multiple child axes. 
     """
-    pass
+    def __init__(self, viewer_state=None, layer=None, **kwargs):
+    
+        super(SmallMultiplesLayerState, self).__init__(viewer_state=viewer_state, layer=layer)
