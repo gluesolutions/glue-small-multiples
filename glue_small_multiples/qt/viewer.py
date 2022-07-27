@@ -174,7 +174,7 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
                                                                self.axes.get_ylim(),
                                                                self.axes.get_xscale(),
                                                                self.axes.get_yscale())
-        facet_state = self.state.data_facet_subsets[0] #We need to get this index back from the roi_tool
+        facet_state = self.state.data_facet_subsets[0].subset_state #We need to get this index back from the roi_tool
         subset_state = subset_state & facet_state 
         self.apply_subset_state(subset_state, override_mode=override_mode)
 

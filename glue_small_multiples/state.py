@@ -152,10 +152,10 @@ class FacetScatterLayerState(ScatterLayerState):
         
         if isinstance(self.layer, Subset):
             data = self.layer.data
-            subset_state = self.layer.subset_state & self.facet_subset
+            subset_state = self.layer.subset_state & self.facet_subset.subset_state
         else:
             data = self.layer
-            subset_state = self.facet_subset
+            subset_state = self.facet_subset.subset_state
         print("Trying to call compute_histogram")
         count = data.compute_histogram([self.viewer_state.y_att, self.viewer_state.x_att],
                                         subset_state=subset_state, bins=bins,
