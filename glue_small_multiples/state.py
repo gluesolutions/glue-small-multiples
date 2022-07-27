@@ -1,10 +1,12 @@
+import numpy as np
+
 from glue.viewers.matplotlib.state import (MatplotlibDataViewerState,
                                            MatplotlibLayerState,
                                            DeferredDrawCallbackProperty as DDCProperty,
                                            DeferredDrawSelectionCallbackProperty as DDSCProperty)
 from glue.core.data_combo_helper import ManualDataComboHelper, ComponentIDComboHelper, ComboHelper
 from glue.core.subset import Subset
-from glue.utils import defer_draw, decorate_all_methods
+from glue.utils import defer_draw, decorate_all_methods, ensure_numerical
 
 __all__ = ['SmallMultiplesState', 'SmallMultiplesLayerState']
 
@@ -79,14 +81,17 @@ class SmallMultiplesState(MatplotlibDataViewerState):
             self.data_facets = []
             print("Trying to set self.data_facets")
             for facet in self.reference_data[self.col_facet_att].categories:
-                facet_state = self.reference_data.id[self.col_facet_att] == facet
+                
+                facet_data = self.reference_data[self.col_facet_att].ravel()
+                facet_mask = np.ma.masked_where(facet_data == facet, facet_data)
+                #facet_state = self.reference_data.id[self.col_facet_att] == facet
                 # We create these subsets manually since we do not want
                 # them to show up outside of this context
                 # (they are not registered to the dataset or the data collection)
-                subset = Subset(self.reference_data,label=facet) 
-                subset.subset_state = facet_state
+                #subset = Subset(self.reference_data,label=facet) 
+                #subset.subset_state = facet_state
                 #subset = self.reference_data.new_subset(facet_state, label=facet)
-                self.data_facets.append(subset)
+                self.data_facets.append(facet_mask)
 
     # len(self.multiples) will be max(max_num_cols, len(col_facet_att.codes))
     #self.multiples = {} # This is all the small multiples to be added
