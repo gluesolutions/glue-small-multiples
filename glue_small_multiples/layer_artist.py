@@ -42,7 +42,8 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
         print(f"{self.layer}=")
         for ax, facet_mask, facet_subset in zip(flat_axes, self._viewer_state.data_facet_masks, self._viewer_state.data_facet_subsets):
             sla = FacetScatterLayerArtist(ax, self._viewer_state, layer=self.layer, 
-                                        facet_mask=facet_mask, facet_subset=facet_subset) 
+                                        facet_mask=facet_mask, facet_subset=facet_subset
+            sla.axes.set_title(facet_subset.label)
             self.scatter_layer_artists.append(sla)
 
 class FacetScatterLayerArtist(ScatterLayerArtist):
