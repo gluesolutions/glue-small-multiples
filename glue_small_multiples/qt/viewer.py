@@ -73,6 +73,11 @@ They are red/colors aren't synced to the Data type
 These subsets do not show up anywhere else
 
 
+Perhaps a more *proper* approach would be to 
+use a DerivedData (glue.core.data_derived) subclass
+to represent these facets...
+IndexedData does a bunch of these sorts of things
+
 """
 
 __all__ = ['SmallMultiplesViewer']

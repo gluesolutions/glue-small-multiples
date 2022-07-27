@@ -2,11 +2,13 @@ import numpy as np
 
 from glue.viewers.matplotlib.layer_artist import MatplotlibLayerArtist
 from glue.viewers.scatter.layer_artist import ScatterLayerArtist
+from glue.viewers.scatter.state import ScatterLayerState
+
 from glue.utils import defer_draw, ensure_numerical
 from glue.core.exceptions import IncompatibleAttribute
 
 from .utils import PanTrackerMixin
-from .state import SmallMultiplesLayerState
+from .state import SmallMultiplesLayerState, FacetScatterLayerState
 
 __all__ = ['SmallMultiplesLayerArtist', 'FacetScatterLayerArtist']
 
@@ -22,7 +24,7 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
     
     """
     
-    _layer_state_cls = SmallMultiplesLayerState
+    _layer_state_cls = ScatterLayerState
 
     def __init__(self, axes, viewer_state, layer_state=None, layer=None):
         super().__init__(axes, viewer_state, layer_state=layer_state, layer=layer)
@@ -38,8 +40,9 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
         
         flat_axes = self.axes_subplots.flatten()
         print(f"{self.layer}=")
-        for ax, facet_mask in zip(flat_axes, self._viewer_state.data_facets):
-            sla = FacetScatterLayerArtist(ax, self._viewer_state, layer=self.layer, facet_mask=facet_mask) 
+        for ax, facet_mask, facet_subset in zip(flat_axes, self._viewer_state.data_facet_masks, self._viewer_state.data_facet_subsets):
+            sla = FacetScatterLayerArtist(ax, self._viewer_state, layer=self.layer, 
+                                        facet_mask=facet_mask, facet_subset=facet_subset) 
             self.scatter_layer_artists.append(sla)
 
 class FacetScatterLayerArtist(ScatterLayerArtist):
@@ -51,10 +54,14 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
     state function that knows how to trim the data before passing it to make 
     a 2d histogram.
     """
-    def __init__(self, axes, viewer_state, layer_state=None, layer=None, facet_mask=None):
+    
+    _layer_state_cls = FacetScatterLayerState
+    
+    def __init__(self, axes, viewer_state, layer_state=None, layer=None, facet_mask=None, facet_subset=None):
         super(FacetScatterLayerArtist, self).__init__(axes, viewer_state,
                                                         layer_state=layer_state, layer=layer)
         self.facet_mask = facet_mask
+        self.state.facet_subset = facet_subset
 
     @defer_draw
     def _update_data(self):
@@ -103,3 +110,15 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
             self.plot_artist.set_data([], [])
             self.scatter_artist.set_offsets(np.zeros((0, 2)))
     
+    def compute_density_map(self, *args, **kwargs):
+        print(f"Trying to compute density map with: {','.join(map(str,args))}")
+        try:
+            density_map = self.state.compute_density_map(*args, **kwargs)
+        except IncompatibleAttribute:
+            print("Got an IncompatibleAttribute")
+            self.disable_invalid_attributes(self._viewer_state.x_att,
+                                            self._viewer_state.y_att)
+            return np.array([[np.nan]])
+        else:
+            self.enable()
+        return density_map
