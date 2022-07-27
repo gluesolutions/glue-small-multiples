@@ -4,17 +4,20 @@ from glue.viewers.matplotlib.state import (MatplotlibDataViewerState,
                                            MatplotlibLayerState,
                                            DeferredDrawCallbackProperty as DDCProperty,
                                            DeferredDrawSelectionCallbackProperty as DDSCProperty)
+from glue.core.state_objects import StateAttributeLimitsHelper
+
 from glue.viewers.scatter.state import ScatterLayerState
 from glue.core.data_combo_helper import ManualDataComboHelper, ComponentIDComboHelper, ComboHelper
 from glue.core.subset import Subset
 from glue.utils import defer_draw, decorate_all_methods, ensure_numerical
-from glue.viewers.scatter.state import ScatterLayerState
+from glue.viewers.scatter.state import ScatterLayerState, ScatterViewerState
 
+from matplotlib.projections import get_projection_names
 
-__all__ = ['SmallMultiplesState', 'FacetScatterLayerState', 'SmallMultiplesLayerState']
+__all__ = ['SmallMultiplesViewerState', 'FacetScatterLayerState', 'SmallMultiplesLayerState']
 
-@decorate_all_methods(defer_draw)
-class SmallMultiplesState(MatplotlibDataViewerState):
+#@decorate_all_methods(defer_draw)
+class SmallMultiplesViewerState(ScatterViewerState):
     """
     State for a Small Multiples Viewer
     
@@ -35,33 +38,54 @@ class SmallMultiplesState(MatplotlibDataViewerState):
     See notebook pp 161
     
     """
-    x_att = DDSCProperty(docstring='The attribute to show on the x-axis', default_index=0)
-    y_att = DDSCProperty(docstring='The attribute to show on the y-axis', default_index=1)
+    #x_att = DDSCProperty(docstring='The attribute to show on the x-axis', default_index=0)
+    #y_att = DDSCProperty(docstring='The attribute to show on the y-axis', default_index=1)
     col_facet_att = DDSCProperty(docstring='The attribute to facet columns by', default_index=2)
     #row_facet_att = DDSCProperty(docstring='The attribute to facet rows by', default_index=2)
     #max_num_cols = DDCProperty(3, docstring='The maximum number of columns to show') #See scatter DPI code
     #max_num_rows = DDCProperty(3, docstring='The maximum number of rows to show')
+    #dpi = DDCProperty(72, docstring='The resolution (in dots per inch) of density maps, if present')
+    #dpi = DDCProperty(72, docstring='The resolution (in dots per inch) of density maps, if present')
+    #plot_mode = DDSCProperty(docstring="Whether to plot the data in cartesian, polar or another projection")
 
     reference_data = DDSCProperty(docstring='The dataset being displayed')
 
     def __init__(self, **kwargs):
-        super().__init__()
+        super(ScatterViewerState, self).__init__()
         self.num_cols = 3 #max(max_num_cols) #len(col_facet_att.codes)
         self.num_rows = 1
         self.data_facet_masks = [] # We can only initialize this if we have a dataset defined
         self.data_facet_subsets = []
 
+        self.limits_cache = {}
+        
+        self.x_lim_helper = StateAttributeLimitsHelper(self, attribute='x_att',
+                                                       lower='x_min', upper='x_max',
+                                                       log='x_log', margin=0.04,
+                                                       limits_cache=self.limits_cache)
+        
+        self.y_lim_helper = StateAttributeLimitsHelper(self, attribute='y_att',
+                                                       lower='y_min', upper='y_max',
+                                                       log='y_log', margin=0.04,
+                                                       limits_cache=self.limits_cache)
+        self.add_callback('layers', self._layers_changed)
+
         self.ref_data_helper = ManualDataComboHelper(self, 'reference_data')
         self.add_callback('reference_data', self._reference_data_changed, priority=1000)
-
-        self.add_callback('layers', self._layers_changed)
 
         self.x_att_helper = ComponentIDComboHelper(self, 'x_att', pixel_coord=True, world_coord=True)
         self.y_att_helper = ComponentIDComboHelper(self, 'y_att', pixel_coord=True, world_coord=True)
         self.col_facet_att_helper = ComponentIDComboHelper(self, 'col_facet_att', categorical=True)
 
+        self.plot_mode_helper = ComboHelper(self, 'plot_mode')
+        self.plot_mode_helper.choices = [proj for proj in get_projection_names() if proj not in ['3d', 'scatter_density']]
+        self.plot_mode_helper.selection = 'rectilinear'
 
         self.update_from_dict(kwargs)
+
+        self.add_callback('x_log', self._reset_x_limits)
+        self.add_callback('y_log', self._reset_y_limits)
+
 
     def _reference_data_changed(self, *args):
         # This signal can get emitted if just the choices but not the actual
@@ -76,6 +100,11 @@ class SmallMultiplesState(MatplotlibDataViewerState):
             self.data_facet_masks = []
             self.data_facet_subsets = []
             print("Trying to set self.data_facets")
+            # We create both a simple mask and a subset representing the facet.
+            # This is redundant, but the Density mode really wants a subset
+            # and the regular/point mode wants a precomputed mask
+            # TODO: Remove this redundancy
+            
             for facet in self.reference_data[self.col_facet_att].categories:
                 
                 facet_data = self.reference_data[self.col_facet_att].ravel()
@@ -110,7 +139,12 @@ class SmallMultiplesState(MatplotlibDataViewerState):
 
 
 class FacetScatterLayerState(ScatterLayerState):
+    def __init__(self, viewer_state=None, layer=None, facet_mask=None, facet_subset=None, **kwargs):
     
+        super(FacetScatterLayerState, self).__init__(viewer_state=viewer_state, layer=layer)
+        if facet_subset is not None:
+            self.title = facet_subset.label
+
     def compute_density_map(self, bins=None, range=None):
         print("Inside compute_density_map")
         if not self.markers_visible or not self.density_map:
@@ -148,5 +182,4 @@ class SmallMultiplesLayerState(ScatterLayerState):
     so there's no way to deal with them separately. One artist/state draws to multiple child axes. 
     """
     def __init__(self, viewer_state=None, layer=None, **kwargs):
-    
         super(SmallMultiplesLayerState, self).__init__(viewer_state=viewer_state, layer=layer)

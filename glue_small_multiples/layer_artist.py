@@ -26,25 +26,25 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
     
     _layer_state_cls = ScatterLayerState
 
-    def __init__(self, axes, viewer_state, layer_state=None, layer=None):
+    def __init__(self, axes, viewer_state, layer_state=None, layer=None): #Where does this get called? How can we get in something that is not actually the axes object?
         super().__init__(axes, viewer_state, layer_state=layer_state, layer=layer)
 
         self.axes_subplots = axes
         self.scatter_layer_artists = []
         
-        #self._viewer_state.add_global_callback(self._update_scatter)
-        #self.state.add_global_callback(self._update_scatter)
+        self._viewer_state.add_global_callback(self._update_scatter)
+        self.state.add_global_callback(self._update_scatter)
 
     #@defer_draw
     def _update_scatter(self, force=False, **kwargs):
         
-        flat_axes = self.axes_subplots.flatten()
-        print(f"{self.layer}=")
-        for ax, facet_mask, facet_subset in zip(flat_axes, self._viewer_state.data_facet_masks, self._viewer_state.data_facet_subsets):
-            sla = FacetScatterLayerArtist(ax, self._viewer_state, layer=self.layer, 
-                                        facet_mask=facet_mask, facet_subset=facet_subset
-            sla.axes.set_title(facet_subset.label)
-            self.scatter_layer_artists.append(sla)
+        if force:
+            flat_axes = self.axes_subplots.flatten()
+            print(f"{self.layer}=")
+            for ax, facet_mask, facet_subset in zip(flat_axes, self._viewer_state.data_facet_masks, self._viewer_state.data_facet_subsets):
+                sla = FacetScatterLayerArtist(ax, self._viewer_state, layer=self.layer, 
+                                            facet_mask=facet_mask, facet_subset=facet_subset)
+                self.scatter_layer_artists.append(sla)
 
 class FacetScatterLayerArtist(ScatterLayerArtist):
     """
@@ -63,6 +63,12 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
                                                         layer_state=layer_state, layer=layer)
         self.facet_mask = facet_mask
         self.state.facet_subset = facet_subset
+        self.state.title = facet_subset.label
+        self.state.add_global_callback(self._update_facet)
+        self._update_facet()
+
+    def _update_facet(self):
+        self.axes.set_title(self.state.title)
 
     @defer_draw
     def _update_data(self):
