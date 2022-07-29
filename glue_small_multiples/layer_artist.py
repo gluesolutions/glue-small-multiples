@@ -35,17 +35,41 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
         self._viewer_state.add_global_callback(self._update_scatter)
         self.state.add_global_callback(self._update_scatter)
 
-    #@defer_draw
-    def _update_scatter(self, force=False, **kwargs):
-        
-        if force:
-            flat_axes = self.axes_subplots.flatten()
-            print(f"{self.layer}=")
-            for ax, facet_mask, facet_subset in zip(flat_axes, self._viewer_state.data_facet_masks, self._viewer_state.data_facet_subsets):
-                sla = FacetScatterLayerArtist(ax, self._viewer_state, layer=self.layer, 
-                                            facet_mask=facet_mask, facet_subset=facet_subset)
-                self.scatter_layer_artists.append(sla)
+    def _set_axes(self):
+        self.scatter_layer_artists = []
+        flat_axes = self.axes_subplots.flatten()
+        for ax, facet_mask, facet_subset in zip(flat_axes, self._viewer_state.data_facet_masks, self._viewer_state.data_facet_subsets):
+            sla = FacetScatterLayerArtist(ax, self._viewer_state, layer=self.layer, 
+                                        facet_mask=facet_mask, facet_subset=facet_subset)
+            self.scatter_layer_artists.append(sla)
 
+    @defer_draw
+    def _update_scatter(self, force=False, **kwargs):
+        if (self._viewer_state.x_att is None or
+                self._viewer_state.y_att is None or
+                self._viewer_state.col_facet_att is None or
+                self._viewer_state.reference_data is None or
+                self.state.layer is None):
+            return
+
+        changed = set() if force else self.pop_changed_properties()
+        if force or any(prop in changed for prop in ('layer','col_facet_att','reference_data')):
+            print(f"Calling _set_axes() with {changed=}")
+            self._set_axes()
+
+CMAP_PROPERTIES = set(['cmap_mode', 'cmap_att', 'cmap_vmin', 'cmap_vmax', 'cmap'])
+MARKER_PROPERTIES = set(['size_mode', 'size_att', 'size_vmin', 'size_vmax', 'size_scaling', 'size', 'fill'])
+LINE_PROPERTIES = set(['linewidth', 'linestyle'])
+DENSITY_PROPERTIES = set(['dpi', 'stretch', 'density_contrast'])
+VISUAL_PROPERTIES = (CMAP_PROPERTIES | MARKER_PROPERTIES | DENSITY_PROPERTIES |
+                     LINE_PROPERTIES | set(['color', 'alpha', 'zorder', 'visible']))
+
+DATA_PROPERTIES = set(['layer', 'x_att', 'y_att', 'cmap_mode', 'size_mode', 'density_map',
+                       'xerr_att', 'yerr_att', 'xerr_visible', 'yerr_visible',
+                       'vector_visible', 'vx_att', 'vy_att', 'vector_arrowhead', 'vector_mode',
+                       'vector_origin', 'line_visible', 'markers_visible', 'vector_scaling',
+                       'col_facet_att'])
+        
 class FacetScatterLayerArtist(ScatterLayerArtist):
     """
     A custom ScatterLayerArtist that knows how to trim the data appropriately based
@@ -64,11 +88,34 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
         self.facet_mask = facet_mask
         self.state.facet_subset = facet_subset
         self.state.title = facet_subset.label
-        self.state.add_global_callback(self._update_facet)
-        self._update_facet()
+        
+    @defer_draw
+    def _update_scatter(self, force=False, **kwargs):
+    
 
-    def _update_facet(self):
-        self.axes.set_title(self.state.title)
+        if (self._viewer_state.x_att is None or
+                self._viewer_state.y_att is None or
+                self._viewer_state.col_facet_att is None or
+                self._viewer_state.reference_data is None or
+                self.state.layer is None):
+            return
+    
+        changed = set() if force else self.pop_changed_properties()
+    
+        print(f"Calling _update_scatter() with {changed=}")
+        print(f"for {self.state.title}")
+        if force or any(prop in changed for prop in (['col_facet_att'])):
+            print("Clearing...")
+            self.clear() #We need to clear these layer artists when we change col_facet_att, but this does not work
+            
+        if force or len(changed & DATA_PROPERTIES) > 0:
+            self._update_data()
+            force = True
+    
+        if force or len(changed & VISUAL_PROPERTIES) > 0:
+            self._update_visual_attributes(changed, force=force)
+            
+            
 
     @defer_draw
     def _update_data(self):
@@ -94,7 +141,9 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
             self.enable()
         masked_x = np.ma.masked_where(np.ma.getmask(self.facet_mask), x)
         masked_y = np.ma.masked_where(np.ma.getmask(self.facet_mask), y)
-    
+        
+        self.axes.set_title(self.state.title)
+        
         if self.state.markers_visible:
         
             if self.state.density_map:
@@ -109,8 +158,10 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
                 if self._use_plot_artist():
                     # In this case we use Matplotlib's plot function because it has much
                     # better performance than scatter.
+                    self.plot_artist.set_data([], [])
                     self.plot_artist.set_data(masked_x, masked_y)
                 else:
+                    self.scatter_artist.set_offsets(np.zeros((0, 2)))
                     offsets = np.vstack((masked_x, masked_y)).transpose()
                     self.scatter_artist.set_offsets(offsets)
         else:

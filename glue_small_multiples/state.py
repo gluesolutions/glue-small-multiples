@@ -38,64 +38,33 @@ class SmallMultiplesViewerState(ScatterViewerState):
     See notebook pp 161
     
     """
-    #x_att = DDSCProperty(docstring='The attribute to show on the x-axis', default_index=0)
-    #y_att = DDSCProperty(docstring='The attribute to show on the y-axis', default_index=1)
     col_facet_att = DDSCProperty(docstring='The attribute to facet columns by', default_index=2)
     #row_facet_att = DDSCProperty(docstring='The attribute to facet rows by', default_index=2)
     #max_num_cols = DDCProperty(3, docstring='The maximum number of columns to show') #See scatter DPI code
     #max_num_rows = DDCProperty(3, docstring='The maximum number of rows to show')
-    #dpi = DDCProperty(72, docstring='The resolution (in dots per inch) of density maps, if present')
-    #dpi = DDCProperty(72, docstring='The resolution (in dots per inch) of density maps, if present')
-    #plot_mode = DDSCProperty(docstring="Whether to plot the data in cartesian, polar or another projection")
 
     reference_data = DDSCProperty(docstring='The dataset being displayed')
 
     def __init__(self, **kwargs):
-        super(ScatterViewerState, self).__init__()
+        super(SmallMultiplesViewerState, self).__init__()
         self.num_cols = 3 #max(max_num_cols) #len(col_facet_att.codes)
         self.num_rows = 1
         self.data_facet_masks = [] # We can only initialize this if we have a dataset defined
         self.data_facet_subsets = []
 
-        self.limits_cache = {}
-        
-        self.x_lim_helper = StateAttributeLimitsHelper(self, attribute='x_att',
-                                                       lower='x_min', upper='x_max',
-                                                       log='x_log', margin=0.04,
-                                                       limits_cache=self.limits_cache)
-        
-        self.y_lim_helper = StateAttributeLimitsHelper(self, attribute='y_att',
-                                                       lower='y_min', upper='y_max',
-                                                       log='y_log', margin=0.04,
-                                                       limits_cache=self.limits_cache)
-        self.add_callback('layers', self._layers_changed)
-
         self.ref_data_helper = ManualDataComboHelper(self, 'reference_data')
         self.add_callback('reference_data', self._reference_data_changed, priority=1000)
 
-        self.x_att_helper = ComponentIDComboHelper(self, 'x_att', pixel_coord=True, world_coord=True)
-        self.y_att_helper = ComponentIDComboHelper(self, 'y_att', pixel_coord=True, world_coord=True)
         self.col_facet_att_helper = ComponentIDComboHelper(self, 'col_facet_att', categorical=True)
+        self.add_callback('col_facet_att', self._reference_data_changed, priority=1000)
 
-        self.plot_mode_helper = ComboHelper(self, 'plot_mode')
-        self.plot_mode_helper.choices = [proj for proj in get_projection_names() if proj not in ['3d', 'scatter_density']]
-        self.plot_mode_helper.selection = 'rectilinear'
-
-        self.update_from_dict(kwargs)
-
-        self.add_callback('x_log', self._reset_x_limits)
-        self.add_callback('y_log', self._reset_y_limits)
-
+        self._reference_data_changed()
 
     def _reference_data_changed(self, *args):
         # This signal can get emitted if just the choices but not the actual
         # reference data change, so we check here that the reference data has
         # actually changed
         print("Calling _reference_data_changed")
-        if self.reference_data is not getattr(self, '_last_reference_data', None):
-            self._last_reference_data = self.reference_data
-            self.data_facet_masks = []
-            self.data_facet_subsets = []
         if self.col_facet_att is not None and self.reference_data is not None:
             self.data_facet_masks = []
             self.data_facet_subsets = []
@@ -104,23 +73,23 @@ class SmallMultiplesViewerState(ScatterViewerState):
             # This is redundant, but the Density mode really wants a subset
             # and the regular/point mode wants a precomputed mask
             # TODO: Remove this redundancy
-            
-            for facet in self.reference_data[self.col_facet_att].categories:
-                
-                facet_data = self.reference_data[self.col_facet_att].ravel()
-                facet_mask = np.ma.masked_where(facet_data == facet, facet_data)
-                # We create these subsets manually since we do not want
-                # them to show up outside of this context
-                # (they are not registered to the dataset or the data collection)
-                facet_state = self.reference_data.id[self.col_facet_att] == facet
-                subset = Subset(self.reference_data,label=f"{self.col_facet_att.label}={facet}") 
-                subset.subset_state = facet_state
-                #subset = self.reference_data.new_subset(facet_state, label=facet)
-                self.data_facet_subsets.append(subset)
-                self.data_facet_masks.append(facet_mask)
+            try:
+                for facet in self.reference_data[self.col_facet_att].categories:
+                    
+                    facet_data = self.reference_data[self.col_facet_att].ravel()
+                    facet_mask = np.ma.masked_where(facet_data == facet, facet_data)
+                    # We create these subsets manually since we do not want
+                    # them to show up outside of this context
+                    # (they are not registered to the dataset or the data collection)
+                    facet_state = self.reference_data.id[self.col_facet_att] == facet
+                    subset = Subset(self.reference_data,label=f"{self.col_facet_att.label}={facet}") 
+                    subset.subset_state = facet_state
+                    self.data_facet_subsets.append(subset)
+                    self.data_facet_masks.append(facet_mask)
+            except:
+                pass
 
     # len(self.multiples) will be max(max_num_cols, len(col_facet_att.codes))
-    #self.multiples = {} # This is all the small multiples to be added
 
     def _layers_changed(self, *args):
         
