@@ -64,6 +64,9 @@ class MultiplePossibleRoiModeBase(ToolbarModeBase):
         # the selection is finalized. The Matplotlib ROIs cache the image
         # background to make things more efficient, but if the user pans/zooms
         # we need to make sure we reset the background.
+        # TODO: Re-enable this for multiple patches
+        # The following attempt leaves behind patches when
+        # switching facets 
         #for _roi_tool in self._roi_tools:
         #    if getattr(_roi_tool, '_mid_selection', False):
         #        _roi_tool._reset_background()
