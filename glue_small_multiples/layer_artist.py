@@ -71,7 +71,7 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
 
         changed = set() if force else self.pop_changed_properties()
         if force or any(prop in changed for prop in ('col_facet_att','reference_data')):
-            print(f"Calling _set_axes() with {changed=}")
+            #print(f"Calling _set_axes() with {changed=}")
             self._set_axes()
             
         #for sla in self.scatter_layer_artists:
@@ -137,7 +137,7 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
     
         changed = set() if force else self.pop_changed_properties()
     
-        print(f"Calling _update_scatter() with {changed=} and {force=} for {self.layer.label}")
+        #print(f"Calling _update_scatter() with {changed=} and {force=} for {self.layer.label}")
         #import pdb; pdb.set_trace()
 
         #if force or any(prop in changed for prop in (['col_facet_att'])):
@@ -173,6 +173,8 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
                     # this entire process
                     
                     # TO: This is not a very efficient way to do this calculation, if that matters
+                    # There are a fair number of calls here with empty subsets, and maybe
+                    # we could short-circuit some of them
                     xsubset_state = self.layer.subset_state & self.state.facet_subset.subset_state
                     subset = Subset(self.layer.data,label=f"temp") 
                     subset.subset_state = xsubset_state

@@ -104,9 +104,7 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
                                                                self.axes.get_yscale())
         facet_state = self.state.data_facet_subsets[0].subset_state #We need to get this index back from the roi_tool
         subset_state = subset_state & facet_state
-        print(subset_state)
         self.apply_subset_state(subset_state, override_mode=override_mode)
-        print("Subset applied!!")
 
     def draw_legend(self, *args):
         #Old legend logic does not work
@@ -115,31 +113,3 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
     def _on_resize(self, *args):
         #Neither does the aspect_ratio call
         pass
-
-    def add_subset(self, subset):
-        print("Calling add_subset")
-        # Check if subset already exists in viewer
-        if not self.allow_duplicate_subset and subset in self._layer_artist_container:
-            return True
-        
-        # Create layer artist and add to container. First check whether any
-        # plugins want to make a custom layer artist.
-        layer = get_layer_artist_from_registry(subset, self) or self.get_subset_layer_artist(subset)
-        
-        if layer is None:
-            return False
-        print(f"Layer is {layer}")
-        self._layer_artist_container.append(layer)
-        print(f"After layer is appended")
-        layer.update()
-        print(f"After layer is updated")
-        return True
-
-    def _update_subset(self, message):
-        print(f"Calling _update_subset with {message.attribute=} and {message=} and {message.subset=}")
-        if message.attribute == 'style':
-            return
-        if message.subset in self._layer_artist_container:
-            #import pdb; pdb.set_trace()
-            for layer_artist in self._layer_artist_container[message.subset]:
-                layer_artist.update()

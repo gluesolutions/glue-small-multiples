@@ -18,6 +18,14 @@ NUM_ADELIE = 152
 NUM_CHINSTRAP = 68
 NUM_GENTOO = 124
 
+"""
+Next steps:
+
+Make subset creation work on other axes
+Figure out why subsets do not display on the third/final? facet plot
+
+"""
+
 class TestSmallMultiplesViewer(object):
     
     
@@ -76,4 +84,5 @@ class TestSmallMultiplesViewer(object):
         #yo.redraw()
         
         sub_data = yo.plot_artist.get_data()
-        assert len(sub_data[0]) > 0 
+        assert len(sub_data[0]) == 14
+        
