@@ -59,6 +59,7 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
             sla = FacetScatterLayerArtist(ax, self._viewer_state, layer=self.layer, 
                                         facet_mask=facet_mask, facet_subset=facet_subset)
             self.scatter_layer_artists.append(sla)
+            sla._update_scatter(force=True)
 
     @defer_draw
     def _update_scatter(self, force=False, **kwargs):

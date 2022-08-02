@@ -47,10 +47,12 @@ class MultiplePossibleRoiModeBase(ToolbarModeBase):
         print("Calling RoiBaseMode __init__...")
 
         def apply_mode(mode):
-            self.viewer.apply_roi(self.roi())
+            self.viewer.apply_roi(self.roi(), self._axis_num)
         self._roi_callback = kwargs.pop('roi_callback', apply_mode)
         super(MultiplePossibleRoiModeBase, self).__init__(viewer, **kwargs)
         self._roi_tools = []
+        self._roi_tool = None
+        self._axis_num = 0 
     
     def close(self, *args):
         self._roi_callback = None
@@ -62,11 +64,12 @@ class MultiplePossibleRoiModeBase(ToolbarModeBase):
         # the selection is finalized. The Matplotlib ROIs cache the image
         # background to make things more efficient, but if the user pans/zooms
         # we need to make sure we reset the background.
-        for _roi_tool in self._roi_tools:
-            if getattr(_roi_tool, '_mid_selection', False):
-                _roi_tool._reset_background()
-            _roi_tool._sync_patch()
-            super(MultiplePossibleRoiModeBase, self).activate()
+        #for _roi_tool in self._roi_tools:
+        #    if getattr(_roi_tool, '_mid_selection', False):
+        #        _roi_tool._reset_background()
+        #    _roi_tool._sync_patch()
+        super(MultiplePossibleRoiModeBase, self).activate()
+    
     
     def roi(self):
         """
@@ -77,14 +80,7 @@ class MultiplePossibleRoiModeBase(ToolbarModeBase):
         list of roi : :class:`~glue.core.roi.Roi`
         """
         print("Calling RoiBaseMode roi...")
-
-        rois = []
-        for _roi_tool in self._roi_tools:
-            try:
-                rois.append(_roi_tool.roi())
-            except IndexError:
-                pass
-        return rois
+        return self._roi_tool.roi()
     
     def _finish_roi(self, event):
         """
@@ -93,8 +89,7 @@ class MultiplePossibleRoiModeBase(ToolbarModeBase):
         print("Calling RoiBaseMode _finish_roi...")
 
         if not self.persistent:
-            for _roi_tool in self._roi_tools:
-                _roi_tool.finalize_selection(event)
+            self._roi_tool.finalize_selection(event)
         if self._roi_callback is not None:
             self._roi_callback(self)
         if self.disable_on_finalize:
@@ -133,11 +128,7 @@ class MultiplePossibleRoiMode(MultiplePossibleRoiModeBase):
         dx = abs(event.x - self._start_event.x)
         dy = abs(event.y - self._start_event.y)
     
-        for _roi_tool in self._roi_tools:
-            try:
-                status = _roi_tool.start_selection(self._start_event)
-            except IndexError:
-                pass
+        status = self._roi_tool.start_selection(self._start_event)
     
         # If start_selection returns False, the selection has not been
         # started and we should abort, so we set self._drag to False in
@@ -152,14 +143,19 @@ class MultiplePossibleRoiMode(MultiplePossibleRoiModeBase):
     
     def move(self, event):
         print("Calling MultiplePossibleRoiMode move...")
+        print(f"{event=}")
+        i = 0
+        for axes,_roi_tool in zip(self._axes_array.flatten(),self._roi_tools):
+            if event.inaxes == axes:
+                self._roi_tool = _roi_tool
+                self._axis_num = i
+            i+=1
+        print(f"{self._roi_tool=}")
+        print(f"{self._axis_num=}")
 
         self._update_drag(event)
         if self._drag:
-            for _roi_tool in self._roi_tools:
-                try:
-                    _roi_tool.update_selection(event)
-                except IndexError:
-                    pass
+            self._roi_tool.update_selection(event)
         super(MultiplePossibleRoiMode, self).move(event)
     
     def release(self, event):
@@ -210,7 +206,7 @@ class FacetRectangleMode(MultiplePossibleRoiMode):
             #try:
             self._roi_tools.append(roi.MplRectangularROI(axes, data_space=data_space))
             #except:
-        self._roi_tools = [self._roi_tools[-1]]
+        #self._roi_tools = [self._roi_tools[-1]]
         print(f"{self._roi_tools=}") 
         #print(f"{self.axes=}")  
         
@@ -252,8 +248,7 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
     def get_layer_artist(self, cls, layer=None, layer_state=None):
         return cls(self.axes_array, self.state, layer=layer, layer_state=layer_state)
 
-    def apply_roi(self, rois, override_mode=None):
-        print(rois)
+    def apply_roi(self, roi, axis_num=0, override_mode=None):
         print(self.state.data_facet_subsets)
         self.redraw()
         
@@ -268,18 +263,17 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
         #                          yfunc=mpl_to_datetime64 if y_date else None)
         
         use_transform = False#self.state.plot_mode != 'rectilinear'
-        for roi in rois:
-            subset_state = roi_to_subset_state(roi,
-                                               x_att=self.state.x_att, x_categories=self.state.x_categories,
-                                               y_att=self.state.y_att, y_categories=self.state.y_categories,
-                                               use_pretransform=use_transform)
+        subset_state = roi_to_subset_state(roi,
+                                           x_att=self.state.x_att, x_categories=self.state.x_categories,
+                                           y_att=self.state.y_att, y_categories=self.state.y_categories,
+                                           use_pretransform=use_transform)
         if use_transform:
             subset_state.pretransform = ProjectionMplTransform(self.state.plot_mode,
                                                                self.axes.get_xlim(),
                                                                self.axes.get_ylim(),
                                                                self.axes.get_xscale(),
                                                                self.axes.get_yscale())
-        facet_state = self.state.data_facet_subsets[0].subset_state #We need to get this index back from the roi_tool
+        facet_state = self.state.data_facet_subsets[axis_num].subset_state #We need to get this index back from the roi_tool
         subset_state = subset_state & facet_state
         self.apply_subset_state(subset_state, override_mode=override_mode)
 
