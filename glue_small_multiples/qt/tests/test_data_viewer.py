@@ -68,3 +68,12 @@ class TestSmallMultiplesViewer(object):
         assert len(self.penguin_data.subsets) == 1
         state = self.penguin_data.subsets[0].subset_state
         assert isinstance(state, AndState)
+
+        yo = self.viewer.layers[1].scatter_layer_artists[0]
+        
+        # We should NOT have to do this
+        #yo._update_data()
+        #yo.redraw()
+        
+        sub_data = yo.plot_artist.get_data()
+        assert len(sub_data[0]) > 0 

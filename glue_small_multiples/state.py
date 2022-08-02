@@ -53,19 +53,24 @@ class SmallMultiplesViewerState(ScatterViewerState):
         self.data_facet_subsets = []
 
         self.ref_data_helper = ManualDataComboHelper(self, 'reference_data')
-        self.add_callback('reference_data', self._reference_data_changed, priority=1000)
+        self.add_callback('reference_data', self._facets_changed, priority=1000)
 
         self.col_facet_att_helper = ComponentIDComboHelper(self, 'col_facet_att', categorical=True)
-        self.add_callback('col_facet_att', self._reference_data_changed, priority=1000)
+        self.add_callback('col_facet_att', self._facets_changed, priority=1000)
 
-        self._reference_data_changed()
+        self._facets_changed()
 
-    def _reference_data_changed(self, *args):
+    def _facets_changed(self, *args):
         # This signal can get emitted if just the choices but not the actual
         # reference data change, so we check here that the reference data has
         # actually changed
-        print("Calling _reference_data_changed")
+        print("Calling _facets_changed")
         if self.col_facet_att is not None and self.reference_data is not None:
+            for data_facet_mask in self.data_facet_masks:
+                del data_facet_mask
+            for data_facet_subset in self.data_facet_subsets:
+                del data_facet_subset
+
             self.data_facet_masks = []
             self.data_facet_subsets = []
             print("Trying to set self.data_facets")
@@ -77,11 +82,12 @@ class SmallMultiplesViewerState(ScatterViewerState):
                 for facet in self.reference_data[self.col_facet_att].categories:
                     
                     facet_data = self.reference_data[self.col_facet_att].ravel()
-                    facet_mask = np.ma.masked_where(facet_data == facet, facet_data)
+                    facet_mask = np.ma.masked_where(facet_data != facet, facet_data)
                     # We create these subsets manually since we do not want
                     # them to show up outside of this context
                     # (they are not registered to the dataset or the data collection)
                     facet_state = self.reference_data.id[self.col_facet_att] == facet
+                    # It is possible that creating these subsets triggers some callbacks?
                     subset = Subset(self.reference_data,label=f"{self.col_facet_att.label}={facet}") 
                     subset.subset_state = facet_state
                     self.data_facet_subsets.append(subset)
@@ -92,7 +98,8 @@ class SmallMultiplesViewerState(ScatterViewerState):
     # len(self.multiples) will be max(max_num_cols, len(col_facet_att.codes))
 
     def _layers_changed(self, *args):
-        
+        #print(f"{self.layers_data=}")
+
         layers_data = self.layers_data
         layers_data_cache = getattr(self, '_layers_data_cache', [])
         
