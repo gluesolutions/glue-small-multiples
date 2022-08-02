@@ -5,7 +5,7 @@ from glue.core.subset import roi_to_subset_state
 
 from glue.utils import nonpartial, defer_draw, decorate_all_methods
 from glue.viewers.matplotlib.qt.data_viewer import MatplotlibDataViewer
-from glue.viewers.matplotlib.toolbar_mode import RectangleMode
+from glue.viewers.matplotlib.toolbar_mode import RectangleMode, ToolbarModeBase
 
 from glue.viewers.scatter.viewer import MatplotlibScatterMixin
 from echo import delay_callback
@@ -21,11 +21,178 @@ from .options_widget import SmallMultiplesOptionsWidget
 
 __all__ = ['FacetRectangleMode','SmallMultiplesViewer']
 
+class MultiplePossibleRoiModeBase(ToolbarModeBase):
+    """
+    Base class for defining ROIs. ROIs accessible via the roi() method
+    
+    See RoiMode and ClickRoiMode subclasses for interaction details
+    
+    An roi_callback function can be provided. When ROIs are finalized (i.e.
+    fully defined), this function will be called with the RoiMode object as the
+    argument. Clients can use RoiMode.roi() to retrieve the new ROI, and take
+    the appropriate action. By default, roi_callback will default to calling an
+    ``apply_roi`` method on the data viewer.
+    """
+    persistent = False  # clear the shape when drawing completes?
+    disable_on_finalize = True
+    
+    def __init__(self, viewer, **kwargs):
+        """
+        Parameters
+        ----------
+        roi_callback : `func`
+            Function that will be called when the ROI is finished being
+            defined.
+        """
+        print("Calling RoiBaseMode __init__...")
+
+        def apply_mode(mode):
+            self.viewer.apply_roi(self.roi())
+        self._roi_callback = kwargs.pop('roi_callback', apply_mode)
+        super(MultiplePossibleRoiModeBase, self).__init__(viewer, **kwargs)
+        self._roi_tools = []
+    
+    def close(self, *args):
+        self._roi_callback = None
+        super(MultiplePossibleRoiModeBase, self).close()
+    
+    def activate(self):
+        print("Calling RoiBaseMode activate...")
+        # For persistent ROIs, the user might e.g. pan and zoom around before
+        # the selection is finalized. The Matplotlib ROIs cache the image
+        # background to make things more efficient, but if the user pans/zooms
+        # we need to make sure we reset the background.
+        for _roi_tool in self._roi_tools:
+            if getattr(_roi_tool, '_mid_selection', False):
+                _roi_tool._reset_background()
+            _roi_tool._sync_patch()
+            super(MultiplePossibleRoiModeBase, self).activate()
+    
+    def roi(self):
+        """
+        The ROI defined by this mouse mode
+    
+        Returns
+        -------
+        list of roi : :class:`~glue.core.roi.Roi`
+        """
+        print("Calling RoiBaseMode roi...")
+
+        rois = []
+        for _roi_tool in self._roi_tools:
+            try:
+                rois.append(_roi_tool.roi())
+            except IndexError:
+                pass
+        return rois
+    
+    def _finish_roi(self, event):
+        """
+        Called by subclasses when ROI is fully defined
+        """
+        print("Calling RoiBaseMode _finish_roi...")
+
+        if not self.persistent:
+            for _roi_tool in self._roi_tools:
+                _roi_tool.finalize_selection(event)
+        if self._roi_callback is not None:
+            self._roi_callback(self)
+        if self.disable_on_finalize:
+            self.viewer.toolbar.active_tool = None
+    
+    def clear(self):
+        print("Calling RoiBaseMode clear...")
+
+        for _roi_tool in self._roi_tools:
+            _roi_tool.reset()
+
+class MultiplePossibleRoiMode(MultiplePossibleRoiModeBase):
+    """
+    Define Roi Modes via click+drag events.
+    
+    ROIs are updated continuously on click+drag events, and finalized on each
+    mouse release
+    """
+    
+    status_tip = "CLICK and DRAG to define selection, CTRL-CLICK and DRAG to move selection"
+    
+    def __init__(self, viewer, **kwargs):
+        print("Calling MultiplePossibleRoiMode __init__...")
+
+        super(MultiplePossibleRoiMode, self).__init__(viewer, **kwargs)
+    
+        self._start_event = None
+        self._drag = False
+    
+    def _update_drag(self, event):
+        print("Calling MultiplePossibleRoiMode _update_drag...")
+
+        if self._drag or self._start_event is None:
+            return
+    
+        dx = abs(event.x - self._start_event.x)
+        dy = abs(event.y - self._start_event.y)
+    
+        for _roi_tool in self._roi_tools:
+            try:
+                status = _roi_tool.start_selection(self._start_event)
+            except IndexError:
+                pass
+    
+        # If start_selection returns False, the selection has not been
+        # started and we should abort, so we set self._drag to False in
+        # this case.
+        self._drag = True if status is None else status
+    
+    def press(self, event):
+        print("Calling MultiplePossibleRoiMode press...")
+
+        self._start_event = event
+        super(MultiplePossibleRoiMode, self).press(event)
+    
+    def move(self, event):
+        print("Calling MultiplePossibleRoiMode move...")
+
+        self._update_drag(event)
+        if self._drag:
+            for _roi_tool in self._roi_tools:
+                try:
+                    _roi_tool.update_selection(event)
+                except IndexError:
+                    pass
+        super(MultiplePossibleRoiMode, self).move(event)
+    
+    def release(self, event):
+        print("Calling MultiplePossibleRoiMode release...")
+
+        if self._drag:
+            self._finish_roi(event)
+        self._drag = False
+        self._start_event = None
+        super(MultiplePossibleRoiMode, self).release(event)
+    
+    def key(self, event):
+        print("Calling MultiplePossibleRoiMode key...")
+
+        if event.key == 'escape':
+            for _roi_tool in self._roi_tools:
+                try:
+                    self._roi_tool.abort_selection(event)
+                except IndexError:
+                    pass
+            self._drag = False
+            self._drawing = False
+            self._start_event = None
+        super(MultiplePossibleRoiMode, self).key(event)
+
 @viewer_tool
-class FacetRectangleMode(RectangleMode):
+class FacetRectangleMode(MultiplePossibleRoiMode):
     """
     Defines a Rectangular ROI, accessible via the :meth:`~RectangleMode.roi`
     method
+    
+    This kind of thing assumes that we have a single self._roi_tool
+    But I think what we want is a list of _roi_tools 
     """
     
     icon = 'glue_square'
@@ -35,10 +202,19 @@ class FacetRectangleMode(RectangleMode):
     shortcut = 'R'
 
     def __init__(self, viewer, **kwargs):
-        super(RectangleMode, self).__init__(viewer, **kwargs)
+        super(FacetRectangleMode, self).__init__(viewer, **kwargs)
         data_space = not hasattr(viewer.state, 'plot_mode') or viewer.state.plot_mode == 'rectilinear'
-        self._axes = getattr(viewer, 'axes', None) #This just returns the first axis, which is NOT what we generally want
-        self._roi_tool = roi.MplRectangularROI(self._axes, data_space=data_space)
+        self._axes_array = getattr(viewer, 'axes_array', None) #This just returns the first axis, which is NOT what we generally want
+        self._roi_tools = []
+        for axes in self._axes_array.flatten():
+            #try:
+            self._roi_tools.append(roi.MplRectangularROI(axes, data_space=data_space))
+            #except:
+        self._roi_tools = [self._roi_tools[-1]]
+        print(f"{self._roi_tools=}") 
+        #print(f"{self.axes=}")  
+        
+                
 
 @decorate_all_methods(defer_draw)
 class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrackerMixin):
@@ -76,8 +252,8 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
     def get_layer_artist(self, cls, layer=None, layer_state=None):
         return cls(self.axes_array, self.state, layer=layer, layer_state=layer_state)
 
-    def apply_roi(self, roi, override_mode=None):
-        print(roi)
+    def apply_roi(self, rois, override_mode=None):
+        print(rois)
         print(self.state.data_facet_subsets)
         self.redraw()
         
@@ -87,15 +263,16 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
         x_date = 'datetime' in self.state.x_kinds
         y_date = 'datetime' in self.state.y_kinds
         
-        if x_date or y_date:
-            roi = roi.transformed(xfunc=mpl_to_datetime64 if x_date else None,
-                                  yfunc=mpl_to_datetime64 if y_date else None)
+        #if x_date or y_date:
+        #   roi = roi.transformed(xfunc=mpl_to_datetime64 if x_date else None,
+        #                          yfunc=mpl_to_datetime64 if y_date else None)
         
         use_transform = False#self.state.plot_mode != 'rectilinear'
-        subset_state = roi_to_subset_state(roi,
-                                           x_att=self.state.x_att, x_categories=self.state.x_categories,
-                                           y_att=self.state.y_att, y_categories=self.state.y_categories,
-                                           use_pretransform=use_transform)
+        for roi in rois:
+            subset_state = roi_to_subset_state(roi,
+                                               x_att=self.state.x_att, x_categories=self.state.x_categories,
+                                               y_att=self.state.y_att, y_categories=self.state.y_categories,
+                                               use_pretransform=use_transform)
         if use_transform:
             subset_state.pretransform = ProjectionMplTransform(self.state.plot_mode,
                                                                self.axes.get_xlim(),
