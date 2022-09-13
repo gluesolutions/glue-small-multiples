@@ -33,6 +33,7 @@ class SmallMultiplesViewerState(ScatterViewerState):
     
     The first time we add data to a viewer we clearly do have to set up the child Axes
     Adding Subsets should NOT set up new child axes
+
     Does it make sense to add another dataset? It is certainly simplest if we just disallow this.
     
     See notebook pp 161
@@ -55,7 +56,7 @@ class SmallMultiplesViewerState(ScatterViewerState):
         self.ref_data_helper = ManualDataComboHelper(self, 'reference_data')
         self.add_callback('reference_data', self._facets_changed, priority=1000)
 
-        self.col_facet_att_helper = ComponentIDComboHelper(self, 'col_facet_att', categorical=True)
+        self.col_facet_att_helper = ComponentIDComboHelper(self, 'col_facet_att', categorical=True, numeric=False)
         self.add_callback('col_facet_att', self._facets_changed, priority=1000)
 
         self._facets_changed()

@@ -146,7 +146,7 @@ class MultiplePossibleRoiMode(MultiplePossibleRoiModeBase):
     
     def move(self, event):
         print("Calling MultiplePossibleRoiMode move...")
-        print(f"{event=}")
+        #print(f"{event=}")
         i = 0
         for axes,_roi_tool in zip(self._axes_array.flatten(),self._roi_tools):
             if event.inaxes == axes:

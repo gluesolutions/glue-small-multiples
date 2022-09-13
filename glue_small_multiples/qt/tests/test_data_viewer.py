@@ -38,14 +38,12 @@ class TestSmallMultiplesViewer(object):
         self.penguin_data = penguins
         self.data_collection.append(self.penguin_data)
         self.viewer = self.app.new_data_viewer(SmallMultiplesViewer)
-        
+        self.viewer.add_data(self.penguin_data)
+
         
     def test_basic(self):
-        
         viewer_state = self.viewer.state
-        
-        # Check defaults when we add data
-        self.viewer.add_data(self.penguin_data)
+
         viewer_state.x_att = self.penguin_data.id['bill_length_mm']
         viewer_state.y_att = self.penguin_data.id['bill_depth_mm']
         viewer_state.col_facet_att = self.penguin_data.id['species']
@@ -62,7 +60,6 @@ class TestSmallMultiplesViewer(object):
     def test_apply_roi(self):
         viewer_state = self.viewer.state
 
-        self.viewer.add_data(self.penguin_data)
         viewer_state.x_att = self.penguin_data.id['bill_length_mm']
         viewer_state.y_att = self.penguin_data.id['bill_depth_mm']
         viewer_state.col_facet_att = self.penguin_data.id['species']
