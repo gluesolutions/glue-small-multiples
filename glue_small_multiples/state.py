@@ -23,10 +23,11 @@ class SmallMultiplesViewerState(ScatterViewerState):
     The user can chose to facet on one or two categorical attributes.
     Ideally we should allow them to facet on integer attributes too.
     """
-    col_facet_att = DDSCProperty(docstring='The attribute to facet columns by', default_index=2)
-    #row_facet_att = DDSCProperty(docstring='The attribute to facet rows by', default_index=2)
-    #max_num_cols = DDCProperty(3, docstring='The maximum number of columns to show') #See scatter DPI code
-    #max_num_rows = DDCProperty(3, docstring='The maximum number of rows to show')
+    col_facet_att = DDSCProperty(docstring='The attribute to facet columns by', default_index=0)
+    row_facet_att = DDSCProperty(docstring='The attribute to facet rows by')
+    # We should be able to make these spinners in the GUI that cannot go below 1
+    max_num_cols = DDCProperty(3, docstring='The maximum number of columns to show')
+    max_num_rows = DDCProperty(3, docstring='The maximum number of rows to show')
 
     reference_data = DDSCProperty(docstring='The dataset being displayed')
 
@@ -39,6 +40,7 @@ class SmallMultiplesViewerState(ScatterViewerState):
 
         self.ref_data_helper = ManualDataComboHelper(self, 'reference_data')
         self.col_facet_att_helper = ComponentIDComboHelper(self, 'col_facet_att', categorical=True, numeric=False)
+        self.row_facet_att_helper = ComponentIDComboHelper(self, 'row_facet_att', categorical=True, numeric=False)
 
         self._facets_changed()
 
@@ -96,7 +98,8 @@ class SmallMultiplesViewerState(ScatterViewerState):
         self.x_att_helper.set_multiple_data(self.layers_data)
         self.y_att_helper.set_multiple_data(self.layers_data)
         self.col_facet_att_helper.set_multiple_data(self.layers_data)
-        
+        self.row_facet_att_helper.set_multiple_data(self.layers_data)
+
         self._layers_data_cache = layers_data
 
 
