@@ -54,12 +54,14 @@ class SmallMultiplesViewerState(ScatterViewerState):
         self.data_facet_subsets = []
 
         self.ref_data_helper = ManualDataComboHelper(self, 'reference_data')
-        self.add_callback('reference_data', self._facets_changed, priority=1000)
-
         self.col_facet_att_helper = ComponentIDComboHelper(self, 'col_facet_att', categorical=True, numeric=False)
-        self.add_callback('col_facet_att', self._facets_changed, priority=1000)
-
+        
         self._facets_changed()
+        
+        self.update_from_dict(kwargs)
+        
+        self.add_callback('col_facet_att', self._facets_changed)
+        self.add_callback('reference_data', self._facets_changed)
 
     def _facets_changed(self, *args):
         # This signal can get emitted if just the choices but not the actual
@@ -119,8 +121,9 @@ class FacetScatterLayerState(ScatterLayerState):
     def __init__(self, viewer_state=None, layer=None, facet_mask=None, facet_subset=None, **kwargs):
     
         super(FacetScatterLayerState, self).__init__(viewer_state=viewer_state, layer=layer)
-        if facet_subset is not None:
-            self.title = facet_subset.label
+        #self.state = scatter_state # Set up with the layer state
+        #if facet_subset is not None:
+        #    self.title = facet_subset.label
 
     def compute_density_map(self, bins=None, range=None):
         print("Inside compute_density_map")
