@@ -1,4 +1,7 @@
 import numpy as np
+
+from echo import delay_callback
+
 from glue.config import viewer_tool
 from glue.core import roi
 from glue.core.subset import roi_to_subset_state
@@ -8,9 +11,7 @@ from glue.viewers.matplotlib.qt.data_viewer import MatplotlibDataViewer
 from glue.viewers.matplotlib.toolbar_mode import RectangleMode, ToolbarModeBase
 
 from glue.viewers.scatter.viewer import MatplotlibScatterMixin
-from echo import delay_callback
 from glue.core.util import update_ticks
-
 from glue.viewers.common.viewer import get_layer_artist_from_registry
 
 from ..utils import PanTrackerMixin
@@ -20,6 +21,7 @@ from .layer_style_editor import SmallMultiplesLayerStyleEditor
 from .options_widget import SmallMultiplesOptionsWidget
 
 __all__ = ['FacetRectangleMode','SmallMultiplesViewer']
+
 
 class MultiplePossibleRoiModeBase(ToolbarModeBase):
     """
@@ -35,7 +37,7 @@ class MultiplePossibleRoiModeBase(ToolbarModeBase):
     """
     persistent = False  # clear the shape when drawing completes?
     disable_on_finalize = True
-    
+
     def __init__(self, viewer, **kwargs):
         """
         Parameters
@@ -53,11 +55,11 @@ class MultiplePossibleRoiModeBase(ToolbarModeBase):
         self._roi_tools = []
         self._roi_tool = None
         self._axis_num = 0 
-    
+
     def close(self, *args):
         self._roi_callback = None
         super(MultiplePossibleRoiModeBase, self).close()
-    
+
     def activate(self):
         print("Calling RoiBaseMode activate...")
         # For persistent ROIs, the user might e.g. pan and zoom around before
@@ -77,14 +79,14 @@ class MultiplePossibleRoiModeBase(ToolbarModeBase):
     def roi(self):
         """
         The ROI defined by this mouse mode
-    
+
         Returns
         -------
         list of roi : :class:`~glue.core.roi.Roi`
         """
         print("Calling RoiBaseMode roi...")
         return self._roi_tool.roi()
-    
+
     def _finish_roi(self, event):
         """
         Called by subclasses when ROI is fully defined
@@ -97,7 +99,7 @@ class MultiplePossibleRoiModeBase(ToolbarModeBase):
             self._roi_callback(self)
         if self.disable_on_finalize:
             self.viewer.toolbar.active_tool = None
-    
+
     def clear(self):
         print("Calling RoiBaseMode clear...")
 
@@ -107,11 +109,11 @@ class MultiplePossibleRoiModeBase(ToolbarModeBase):
 class MultiplePossibleRoiMode(MultiplePossibleRoiModeBase):
     """
     Define Roi Modes via click+drag events.
-    
+
     ROIs are updated continuously on click+drag events, and finalized on each
     mouse release
     """
-    
+
     status_tip = "CLICK and DRAG to define selection, CTRL-CLICK and DRAG to move selection"
     
     def __init__(self, viewer, **kwargs):
@@ -184,16 +186,17 @@ class MultiplePossibleRoiMode(MultiplePossibleRoiModeBase):
             self._start_event = None
         super(MultiplePossibleRoiMode, self).key(event)
 
+
 @viewer_tool
 class FacetRectangleMode(MultiplePossibleRoiMode):
     """
     Defines a Rectangular ROI, accessible via the :meth:`~RectangleMode.roi`
     method
-    
+
     This kind of thing assumes that we have a single self._roi_tool
     But I think what we want is a list of _roi_tools 
     """
-    
+
     icon = 'glue_square'
     tool_id = 'select:facetrectangle'
     action_text = 'Rectangular ROI'
@@ -203,17 +206,11 @@ class FacetRectangleMode(MultiplePossibleRoiMode):
     def __init__(self, viewer, **kwargs):
         super(FacetRectangleMode, self).__init__(viewer, **kwargs)
         data_space = not hasattr(viewer.state, 'plot_mode') or viewer.state.plot_mode == 'rectilinear'
-        self._axes_array = getattr(viewer, 'axes_array', None) #This just returns the first axis, which is NOT what we generally want
+        self._axes_array = getattr(viewer, 'axes_array', None)
         self._roi_tools = []
         for axes in self._axes_array.flatten():
-            #try:
             self._roi_tools.append(roi.MplRectangularROI(axes, data_space=data_space))
-            #except:
-        #self._roi_tools = [self._roi_tools[-1]]
-        print(f"{self._roi_tools=}") 
-        #print(f"{self.axes=}")  
-        
-                
+
 
 @decorate_all_methods(defer_draw)
 class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrackerMixin):

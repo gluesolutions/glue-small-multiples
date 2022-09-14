@@ -1,4 +1,5 @@
 import numpy as np
+from matplotlib.projections import get_projection_names
 
 from glue.viewers.matplotlib.state import (MatplotlibDataViewerState,
                                            MatplotlibLayerState,
@@ -12,32 +13,15 @@ from glue.core.subset import Subset
 from glue.utils import defer_draw, decorate_all_methods, ensure_numerical
 from glue.viewers.scatter.state import ScatterLayerState, ScatterViewerState
 
-from matplotlib.projections import get_projection_names
 
 __all__ = ['SmallMultiplesViewerState', 'FacetScatterLayerState', 'SmallMultiplesLayerState']
 
-#@decorate_all_methods(defer_draw)
 class SmallMultiplesViewerState(ScatterViewerState):
     """
     State for a Small Multiples Viewer
-    
-    The user can chose to facet on one or two categorical or integer attributes.
-    
-    This will be much simpler to start if we limit it to a single facet
-    The layout logic is much more complicated for two facets, but that is sort
-    of a separate issue.
-    
-    In GenomeTrackViewer we have a new layer artist -> new child Axes
-    
-    That's not the case here.
-    
-    The first time we add data to a viewer we clearly do have to set up the child Axes
-    Adding Subsets should NOT set up new child axes
 
-    Does it make sense to add another dataset? It is certainly simplest if we just disallow this.
-    
-    See notebook pp 161
-    
+    The user can chose to facet on one or two categorical attributes.
+    Ideally we should allow them to facet on integer attributes too.
     """
     col_facet_att = DDSCProperty(docstring='The attribute to facet columns by', default_index=2)
     #row_facet_att = DDSCProperty(docstring='The attribute to facet rows by', default_index=2)
@@ -47,7 +31,7 @@ class SmallMultiplesViewerState(ScatterViewerState):
     reference_data = DDSCProperty(docstring='The dataset being displayed')
 
     def __init__(self, **kwargs):
-        super(SmallMultiplesViewerState, self).__init__()
+        super().__init__()
         self.num_cols = 3 #max(max_num_cols) #len(col_facet_att.codes)
         self.num_rows = 1
         self.data_facet_masks = [] # We can only initialize this if we have a dataset defined
@@ -55,11 +39,11 @@ class SmallMultiplesViewerState(ScatterViewerState):
 
         self.ref_data_helper = ManualDataComboHelper(self, 'reference_data')
         self.col_facet_att_helper = ComponentIDComboHelper(self, 'col_facet_att', categorical=True, numeric=False)
-        
+
         self._facets_changed()
-        
+
         self.update_from_dict(kwargs)
-        
+
         self.add_callback('col_facet_att', self._facets_changed)
         self.add_callback('reference_data', self._facets_changed)
 
@@ -101,14 +85,13 @@ class SmallMultiplesViewerState(ScatterViewerState):
     # len(self.multiples) will be max(max_num_cols, len(col_facet_att.codes))
 
     def _layers_changed(self, *args):
-        #print(f"{self.layers_data=}")
 
         layers_data = self.layers_data
         layers_data_cache = getattr(self, '_layers_data_cache', [])
-        
+
         if layers_data == layers_data_cache:
             return
-        
+
         self.ref_data_helper.set_multiple_data(self.layers_data)
         self.x_att_helper.set_multiple_data(self.layers_data)
         self.y_att_helper.set_multiple_data(self.layers_data)
@@ -120,13 +103,12 @@ class SmallMultiplesViewerState(ScatterViewerState):
 class FacetScatterLayerState(ScatterLayerState):
     def __init__(self, viewer_state=None, layer=None, facet_mask=None, facet_subset=None, **kwargs):
     
-        super(FacetScatterLayerState, self).__init__(viewer_state=viewer_state, layer=layer)
+        super().__init__(viewer_state=viewer_state, layer=layer)
         #self.state = scatter_state # Set up with the layer state
         #if facet_subset is not None:
         #    self.title = facet_subset.label
 
     def compute_density_map(self, bins=None, range=None):
-        print("Inside compute_density_map")
         if not self.markers_visible or not self.density_map:
             return np.zeros(bins)
         
@@ -136,12 +118,10 @@ class FacetScatterLayerState(ScatterLayerState):
         else:
             data = self.layer
             subset_state = self.facet_subset.subset_state
-        print("Trying to call compute_histogram")
         count = data.compute_histogram([self.viewer_state.y_att, self.viewer_state.x_att],
                                         subset_state=subset_state, bins=bins,
                                         log=(self.viewer_state.y_log, self.viewer_state.x_log),
                                         range=range)
-        print(f"Got: {count}")
         if self.cmap_mode == 'Fixed':
             return count
         else:
