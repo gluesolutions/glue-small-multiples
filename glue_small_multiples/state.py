@@ -16,6 +16,24 @@ from glue.viewers.scatter.state import ScatterLayerState, ScatterViewerState
 
 __all__ = ['SmallMultiplesViewerState', 'FacetScatterLayerState', 'SmallMultiplesLayerState']
 
+class FacetSubset(Subset):
+    """Just a convenience class to prevent facet subset labels from
+    getting the extra disambiguation stuff.
+    """
+    def __init__(self, data, color=None, alpha=0.5, label=None):
+        super().__init__(data, color, alpha, label)
+
+    @property
+    def label(self):
+        """ Convenience access to subset's label """
+        return self._label
+
+    @label.setter
+    def label(self, value):
+        """Do not disambiguate these subsets."""
+        self._label = value
+
+
 class SmallMultiplesViewerState(ScatterViewerState):
     """
     State for a Small Multiples Viewer
@@ -27,14 +45,16 @@ class SmallMultiplesViewerState(ScatterViewerState):
     row_facet_att = DDSCProperty(docstring='The attribute to facet rows by')
     # We should be able to make these spinners in the GUI that cannot go below 1
     max_num_cols = DDCProperty(3, docstring='The maximum number of columns to show')
-    max_num_rows = DDCProperty(3, docstring='The maximum number of rows to show')
+    max_num_rows = DDCProperty(1, docstring='The maximum number of rows to show')
+
+
+    num_cols = DDCProperty(3, docstring="The number of columns to display in the grid")
+    num_rows = DDCProperty(1, docstring="The number of rows to display in the grid")
 
     reference_data = DDSCProperty(docstring='The dataset being displayed')
 
     def __init__(self, **kwargs):
         super().__init__()
-        self.num_cols = 3 #max(max_num_cols) #len(col_facet_att.codes)
-        self.num_rows = 1
         self.data_facet_masks = [] # We can only initialize this if we have a dataset defined
         self.data_facet_subsets = []
 
@@ -47,14 +67,24 @@ class SmallMultiplesViewerState(ScatterViewerState):
         self.update_from_dict(kwargs)
 
         self.add_callback('col_facet_att', self._facets_changed)
+        self.add_callback('row_facet_att', self._facets_changed)
         self.add_callback('reference_data', self._facets_changed)
+        self.add_callback('num_cols', self._facets_changed)
+        self.add_callback('num_rows', self._facets_changed)
 
     def _facets_changed(self, *args):
-        # This signal can get emitted if just the choices but not the actual
-        # reference data change, so we check here that the reference data has
-        # actually changed
         print("Calling _facets_changed")
-        if self.col_facet_att is not None and self.reference_data is not None:
+
+        if self.col_facet_att is not None:
+            self.num_cols = min(self.max_num_cols, len(self.reference_data[self.col_facet_att].categories))
+        else:
+            self.num_cols = 1
+        if self.row_facet_att is not None:
+            self.num_rows = min(self.max_num_rows, len(self.reference_data[self.row_facet_att].categories))
+        else:
+            self.num_rows = 1
+
+        if (self.col_facet_att is not None) or (self.row_facet_att is not None) and self.reference_data is not None:
             for data_facet_mask in self.data_facet_masks:
                 del data_facet_mask
             for data_facet_subset in self.data_facet_subsets:
@@ -68,23 +98,63 @@ class SmallMultiplesViewerState(ScatterViewerState):
             # and the regular/point mode wants a precomputed mask
             # TODO: Remove this redundancy
             try:
-                for facet in self.reference_data[self.col_facet_att].categories:
-                    
-                    facet_data = self.reference_data[self.col_facet_att].ravel()
-                    facet_mask = np.ma.masked_where(facet_data != facet, facet_data)
-                    # We create these subsets manually since we do not want
-                    # them to show up outside of this context
-                    # (they are not registered to the dataset or the data collection)
-                    facet_state = self.reference_data.id[self.col_facet_att] == facet
-                    # It is possible that creating these subsets triggers some callbacks?
-                    subset = Subset(self.reference_data,label=f"{self.col_facet_att.label}={facet}") 
+                col_facet_masks  = []
+                col_facet_subsets = []
+                if col_facet_att is not None:
+                    for col_i in range(num_cols): 
+                        col_facet = reference_data[col_facet_att].categories[col_i]
+                        col_facet_data = reference_data[col_facet_att].ravel()
+                        col_facet_mask = np.ma.masked_where(col_facet_data != col_facet, col_facet_data)
+                        facet_state = self.reference_data.id[self.col_facet_att] == col_facet
+                        subset = FacetSubset(self.reference_data,label=f"{self.col_facet_att.label}={col_facet}") 
+                        subset.subset_state = facet_state
+                        col_facet_subsets.append(subset)
+                        col_facet_masks.append(col_facet_mask)
+                else:
+                    col_facet_masks = [np.ma.masked_where(False, self.reference_data[self.row_facet_att].ravel())]
+                    facet_state = self.reference_data.id[self.row_facet_att] != '***' 
+                    subset = FacetSubset(self.reference_data, label=f" ") 
                     subset.subset_state = facet_state
-                    self.data_facet_subsets.append(subset)
-                    self.data_facet_masks.append(facet_mask)
+                    col_facet_subsets.append(subset)
+
+                row_facet_masks  = []
+                row_facet_subsets = []
+
+                if row_facet_att is not None:
+                    row_facet_masks = []
+                    for row_i in range(num_rows):
+                        row_facet = reference_data[row_facet_att].categories[row_i]
+                        row_facet_data = reference_data[row_facet_att].ravel()
+                        row_facet_mask = np.ma.masked_where(row_facet_data != row_facet, row_facet_data)
+                        facet_state = self.reference_data.id[self.row_facet_att] == row_facet
+                        subset = FacetSubset(self.reference_data,label=f"{self.row_facet_att.label}={row_facet}") 
+                        subset.subset_state = facet_state
+                        row_facet_subsets.append(subset)
+                        row_facet_masks.append(row_facet_mask)
+                else:
+                    row_facet_masks = [np.ma.masked_where(False, reference_data[col_facet_att].ravel())]
+                    facet_state = self.reference_data.id[self.col_facet_att] != '***' 
+                    subset = FacetSubset(self.reference_data, label=f" ") 
+                    subset.subset_state = facet_state
+                    row_facet_subsets.append(subset)
+
+                for col_facet_subset in col_facet_subsets:
+                    row = []
+                    for row_facet_subset in row_facet_subsets:
+                        facet_subset_state = col_facet_subset.subset_state & row_facet_subset.subset_state
+                        row.append(facet_subset_state)
+                    self.data_facet_subsets.append(row)
+
+                for col_facet_mask in col_facet_masks:
+                    row = []
+                    for row_facet_mask in row_facet_masks:
+                        facet_mask = col_facet_mask.mask & row_facet_mask.mask
+                        row.append(facet_mask)
+                    self.data_facet_masks.append(row)
+
             except:
                 pass
 
-    # len(self.multiples) will be max(max_num_cols, len(col_facet_att.codes))
 
     def _layers_changed(self, *args):
 

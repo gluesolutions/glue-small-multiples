@@ -56,8 +56,11 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
         self.scatter_layer_artists_syncs = []
 
         flat_axes = self.axes_subplots.flatten()
-        for ax, facet_mask, facet_subset in zip(flat_axes, self._viewer_state.data_facet_masks, 
-                                                self._viewer_state.data_facet_subsets):
+        flat_facet_masks = [item for sublist in self._viewer_state.data_facet_masks for item in sublist]
+        flat_facet_subsets = [item for sublist in self._viewer_state.data_facet_subsets for item in sublist]
+
+        for ax, facet_mask, facet_subset in zip(flat_axes, flat_facet_masks, 
+                                                flat_facet_subsets):
             sla = FacetScatterLayerArtist(ax, self._viewer_state, layer=self.layer, 
                                           facet_mask=facet_mask, facet_subset=facet_subset, 
                                           scatter_state = self.state)
@@ -71,13 +74,15 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
     def _update_scatter(self, force=False, **kwargs):
         if (self._viewer_state.x_att is None or
                 self._viewer_state.y_att is None or
-                self._viewer_state.col_facet_att is None or
+                ((self._viewer_state.col_facet_att is None) and 
+                (self._viewer_state.row_facet_att is None)) or
                 self._viewer_state.reference_data is None or
                 self.state.layer is None):
             return
 
         changed = set() if force else self.pop_changed_properties()
-        if force or any(prop in changed for prop in ('col_facet_att','reference_data')):
+        if force or any(prop in changed for prop in ('col_facet_att','row_facet_att',
+                                                     'num_cols','num_rows','reference_data')):
             self._set_axes()
 
     @defer_draw
@@ -160,7 +165,7 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
 
                 else:
                     x = ensure_numerical(self.layer[self._viewer_state.x_att].ravel())
-                    masked_x = np.ma.masked_where(np.ma.getmask(self.facet_mask), x)
+                    masked_x = np.ma.masked_where(self.facet_mask, x)
 
         except (IncompatibleAttribute, IndexError):
             self.disable_invalid_attributes(self._viewer_state.x_att)
@@ -177,7 +182,7 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
                     masked_y = ensure_numerical(subset[self._viewer_state.y_att].ravel())
                 else:
                     y = ensure_numerical(self.layer[self._viewer_state.y_att].ravel())
-                    masked_y = np.ma.masked_where(np.ma.getmask(self.facet_mask), y)
+                    masked_y = np.ma.masked_where(self.facet_mask, y)
 
         except (IncompatibleAttribute, IndexError):
             self.disable_invalid_attributes(self._viewer_state.y_att)
@@ -225,7 +230,7 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
                 elif force or any(prop in changed for prop in CMAP_PROPERTIES):
                     c = ensure_numerical(self.layer[self.state.cmap_att].ravel())
                     if self.facet_mask is not None:
-                        c = np.ma.masked_where(np.ma.getmask(self.facet_mask), c)
+                        c = np.ma.masked_where(self.facet_mask, c)
                     set_mpl_artist_cmap(self.density_artist, c, self.state)
     
                 if force or 'stretch' in changed:
@@ -272,7 +277,7 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
                         self.scatter_artist.set_facecolors(None)
                         c = ensure_numerical(self.layer[self.state.cmap_att].ravel())
                         if self.facet_mask is not None:
-                            c = np.ma.masked_where(np.ma.getmask(self.facet_mask), c)
+                            c = np.ma.masked_where(self.facet_mask, c)
 
                         set_mpl_artist_cmap(self.scatter_artist, c, self.state)
                         if self.state.fill:
@@ -288,7 +293,7 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
                         else:
                             s = ensure_numerical(self.layer[self.state.size_att].ravel())
                             if self.facet_mask is not None:
-                                s = np.ma.masked_where(np.ma.getmask(self.facet_mask), s)
+                                s = np.ma.masked_where(self.facet_mask, s)
 
                             s = ((s - self.state.size_vmin) /
                                  (self.state.size_vmax - self.state.size_vmin))
