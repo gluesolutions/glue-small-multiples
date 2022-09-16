@@ -155,6 +155,7 @@ class MultiplePossibleRoiMode(MultiplePossibleRoiModeBase):
             if event.inaxes == axes:
                 self._roi_tool = _roi_tool
                 self._col_axis_num, self._row_axis_num = np.unravel_index(i,self._axes_array.shape)
+                break
             i+=1
         print(f"{self._roi_tool=}")
         print(f"{self._col_axis_num=}")
@@ -251,7 +252,7 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
         MatplotlibScatterMixin.setup_callbacks(self)
         
         self.state.add_callback('num_cols', self._configure_axes_array)
-        #self.state.add_callback('num_rows', self._configure_axes_array)
+        self.state.add_callback('num_rows', self._configure_axes_array)
         #self._configure_axes_array()
         #self.state.add_callback('num_cols', self._configure_axes_array)
         #self.state.add_callback('num_rows', self._configure_axes_array)
@@ -267,7 +268,7 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
         #        self.figure.delaxes(ax)
         #        #ax.remove()
 
-        if self.axes_array.shape == (self.state.num_rows, self.state.num_cols):
+        if self.axes_array.shape == (self.state.num_cols, self.state.num_cols):
             print("Axes array is already the right shape, returning...")
             return
 

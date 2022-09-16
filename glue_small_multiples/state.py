@@ -169,19 +169,19 @@ class SmallMultiplesViewerState(ScatterViewerState):
                 subset.subset_state = facet_state
                 row_facet_subsets.append(subset)
 
-            for col_facet_subset in col_facet_subsets:
-                row = []
-                for row_facet_subset in row_facet_subsets:
-                    facet_subset_state = col_facet_subset.subset_state & row_facet_subset.subset_state
-                    row.append(facet_subset_state)
-                self.data_facet_subsets.append(row)
+            for row_facet_subset in row_facet_subsets:
+                col = []
+                for col_facet_subset in col_facet_subsets:
+                    facet_subset_state = row_facet_subset.subset_state & col_facet_subset.subset_state
+                    col.append(facet_subset_state)
+                self.data_facet_subsets.append(col)
 
-            for col_facet_mask in col_facet_masks:
-                row = []
-                for row_facet_mask in row_facet_masks:
-                    facet_mask = col_facet_mask.mask | row_facet_mask.mask
-                    row.append(facet_mask)
-                self.data_facet_masks.append(row)
+            for row_facet_mask in row_facet_masks:
+                col = []
+                for col_facet_mask in col_facet_masks:
+                    facet_mask = row_facet_mask.mask | col_facet_mask.mask
+                    col.append(facet_mask)
+                self.data_facet_masks.append(col)
 
         except IndexError:
             pass
