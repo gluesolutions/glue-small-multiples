@@ -61,7 +61,9 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
         flat_axes = self.axes_subplots.flatten()
         flat_facet_masks = [item for sublist in self._viewer_state.data_facet_masks for item in sublist]
         flat_facet_subsets = [item for sublist in self._viewer_state.data_facet_subsets for item in sublist]
-
+        if len(flat_axes) != len(flat_facet_masks):
+            print("#### MISMATCH BETWEEN axes and facets ####")
+            return 
         print(f"{len(flat_axes)=}")
         print(f"{len(flat_facet_masks)=}")
         print(f"{len(flat_facet_subsets)=}")
@@ -98,7 +100,6 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
 
     def redraw(self):
         pass # Is this okay?
-        #self.axes.figure.canvas.draw_idle()
 
 
 class FacetScatterLayerArtist(ScatterLayerArtist):

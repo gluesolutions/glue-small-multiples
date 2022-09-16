@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib.projections import get_projection_names
 
-from echo import delay_callback
+from echo import delay_callback, CallbackProperty
 from glue.viewers.matplotlib.state import (MatplotlibDataViewerState,
                                            MatplotlibLayerState,
                                            DeferredDrawCallbackProperty as DDCProperty,
@@ -42,14 +42,14 @@ class SmallMultiplesViewerState(ScatterViewerState):
     The user can chose to facet on one or two categorical attributes.
     Ideally we should allow them to facet on integer attributes too.
     """
-    col_facet_att = DDSCProperty(docstring='The attribute to facet columns by', default_index=0)
-    row_facet_att = DDSCProperty(docstring='The attribute to facet rows by', default_index=1)
+    col_facet_att = DDSCProperty(docstring='The attribute to facet columns by', default_index=2)
+    row_facet_att = DDSCProperty(docstring='The attribute to facet rows by', default_index=0)
     # We should be able to make these spinners in the GUI that cannot go below 1
     max_num_cols = DDCProperty(3, docstring='The maximum number of columns to show')
     max_num_rows = DDCProperty(3, docstring='The maximum number of rows to show')
 
     num_cols = DDCProperty(3, docstring="The number of columns to display in the grid")
-    num_rows = DDCProperty(3, docstring="The number of rows to display in the grid")
+    num_rows = DDCProperty(1, docstring="The number of rows to display in the grid")
 
     reference_data = DDSCProperty(docstring='The dataset being displayed')
 
@@ -59,8 +59,8 @@ class SmallMultiplesViewerState(ScatterViewerState):
         self.data_facet_subsets = []
 
         self.ref_data_helper = ManualDataComboHelper(self, 'reference_data')
-        self.col_facet_att_helper = ComponentIDComboHelper(self, 'col_facet_att', categorical=True, numeric=False)
-        self.row_facet_att_helper = ComponentIDComboHelper(self, 'row_facet_att', categorical=True, numeric=False)
+        self.col_facet_att_helper = ComponentIDComboHelper(self, 'col_facet_att', categorical=True, numeric=False, none="None")
+        self.row_facet_att_helper = ComponentIDComboHelper(self, 'row_facet_att', categorical=True, numeric=False, none="None")
 
         self.update_from_dict(kwargs)
 
@@ -74,22 +74,13 @@ class SmallMultiplesViewerState(ScatterViewerState):
 
     def _update_num_rows_cols(self, *args):
         print("Calling _update_num_rows_cols")
-        print(f"{self.num_cols=}")
-        print(f"{self.num_rows=}")
+        print(f"orig {self.num_cols=}")
+        print(f"orig {self.num_rows=}")
 
-        if ((self.col_facet_att is None) and (self.row_facet_att is None)) or (self.reference_data is None) or (self.max_num_rows is None) or (self.max_num_cols is None):
+        if (self.reference_data is None) or (self.max_num_rows is None) or (self.max_num_cols is None):
             print("Returning from _update_num_rows_cols...")
             return
 
-        # It seems like this function gets called
-        # but then with or without delay_callbacks, we get
-        # the viewer callback on self.num_cols right away, which is a problem
-        # because then the facets aren't ready.
-        # We need to compute the facets first.
-            
-        #with delay_callback(self, 'num_cols', 'num_rows'):
-            #old_num_cols = self.num_cols
-            #old_num_rows = self.num_rows
         if self.col_facet_att is not None:
             self.temp_num_cols = min(self.max_num_cols, len(self.reference_data[self.col_facet_att].categories))
         else:
@@ -98,11 +89,13 @@ class SmallMultiplesViewerState(ScatterViewerState):
             self.temp_num_rows = min(self.max_num_rows, len(self.reference_data[self.row_facet_att].categories))
         else:
             self.temp_num_rows = 1
-        print(f"New dimensions are: {self.num_cols=} x {self.num_rows=}")
-
+        print(f"New dimensions are: {self.temp_num_cols=} x {self.temp_num_rows=}")
+        
         self._facets_changed()
         self.num_cols = self.temp_num_cols
-        self.num_row = self.temp_num_rows
+        self.num_rows = self.temp_num_rows
+
+        print(f"We have changed dimensions to: {self.num_cols=} x {self.num_rows=}")
 
     def _facets_changed(self, *args):
         print("Calling _facets_changed")
@@ -185,7 +178,7 @@ class SmallMultiplesViewerState(ScatterViewerState):
 
         except IndexError:
             pass
-
+        print("Finished with from _facets_changed...")
 
     def _layers_changed(self, *args):
 
@@ -219,8 +212,15 @@ class FacetScatterLayerState(ScatterLayerState):
             self.title = self.facet_subset.label
         except AttributeError: #This is for an AndState
             state1 = str(self.facet_subset.state1).strip("()").replace('==','=')
+            if '***' in state1: # FIXME: Hack for empty subset
+                state1 = None
             state2 = str(self.facet_subset.state2).strip("()").replace('==','=')
-            self.title  = f"{state1} and {state2}"
+            if '***' in state2: # FIXME: Hack for empty subset
+                state2 = None
+            if state1 and state2:
+                self.title  = f"{state1} and {state2}"
+            else:
+                self.title = state1 or state2
 
     def compute_density_map(self, bins=None, range=None):
         if not self.markers_visible or not self.density_map:

@@ -267,6 +267,7 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
         #    for ax in self.axes_array:
         #        self.figure.delaxes(ax)
         #        #ax.remove()
+        print(" -------- Calling _configure_axes_array...")
 
         if self.axes_array.shape == (self.state.num_cols, self.state.num_cols):
             print("Axes array is already the right shape, returning...")
@@ -277,7 +278,6 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
             self.figure.delaxes(ax)
         self.redraw()
 
-        print("Calling _configure_axes_array...")
         self.axes_array = self.figure.subplots(self.state.num_rows, self.state.num_cols, sharex=True, sharey=True, squeeze=False)
         self.axes = self.axes_array[0][0]
         self.remove_all_toolbars()
