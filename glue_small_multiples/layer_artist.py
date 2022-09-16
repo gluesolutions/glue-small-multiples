@@ -41,14 +41,17 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
     def __init__(self, axes, viewer_state, layer_state=None, layer=None):
         super().__init__(axes, viewer_state, layer_state=layer_state, layer=layer)
 
-        self.axes_subplots = axes
-        self.scatter_layer_artists = []
-        self.scatter_layer_artists_syncs = []
         self._viewer_state.add_global_callback(self._update_scatter)
         self.state.add_global_callback(self._update_scatter)
 
-    def _set_axes(self):
+        self.scatter_layer_artists = []
+        self.scatter_layer_artists_syncs = []
+        self._set_axes(axes)
 
+    def _set_axes(self, axes=None):
+        print("Calling _set_axes")
+        if axes is not None:
+            self.axes_subplots = axes
         for sla in self.scatter_layer_artists:
             sla.clear()
             sla.remove()
@@ -58,6 +61,10 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
         flat_axes = self.axes_subplots.flatten()
         flat_facet_masks = [item for sublist in self._viewer_state.data_facet_masks for item in sublist]
         flat_facet_subsets = [item for sublist in self._viewer_state.data_facet_subsets for item in sublist]
+
+        print(f"{len(flat_axes)=}")
+        print(f"{len(flat_facet_masks)=}")
+        print(f"{len(flat_facet_subsets)=}")
 
         for ax, facet_mask, facet_subset in zip(flat_axes, flat_facet_masks, 
                                                 flat_facet_subsets):
@@ -81,8 +88,7 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
             return
 
         changed = set() if force else self.pop_changed_properties()
-        if force or any(prop in changed for prop in ('col_facet_att','row_facet_att',
-                                                     'num_cols','num_rows','reference_data')):
+        if force or any(prop in changed for prop in ('col_facet_att','row_facet_att')):
             self._set_axes()
 
     @defer_draw
@@ -105,16 +111,30 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
     
     def __init__(self, axes, viewer_state, layer_state=None, layer=None, 
                  facet_mask=None, facet_subset=None, scatter_state=None):
+        print("In __init__ for FacetScatterLayerArtist")
+
+
         super().__init__(axes, viewer_state, layer_state=layer_state, layer=layer)
+        
+        self.state.facet_mask = facet_mask
+        self.state.facet_subset = facet_subset
+        self.state._update_title()
+        self.facet_mask = self.state.facet_mask
+        
+        # DO we need to set up the states here?
+        # Or can we rely on keep_in_sync?
+
+        #if scatter_state is not None:
+        #    self.state.update_from_state(scatter_state)
+        #print(f"{self.state=}")
+        #print(f"{self.facet_mask=}")
+
+        print(f"The above __init__ was for {self.state.title=}")
+
         # We create new FacetScatterLayerArtists (and associated) state
         # whenever we change the facets, so we need to make sure that the
         # state starts out in sync with the overarching layer state
         # TODO: It is more naturally to do this in state __init__?
-        if scatter_state is not None:
-            self.state = scatter_state
-        self.facet_mask = facet_mask
-        self.state.facet_subset = facet_subset
-        self.state.title = facet_subset.label
 
     @defer_draw
     def _update_scatter(self, force=False, **kwargs):
@@ -138,7 +158,7 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
 
     @defer_draw
     def _update_data(self):
-        print(f"Calling **_update_data** with {self.layer.label}")
+        print(f"Calling **_update_data** with {self.state.title}")
         if len(self.mpl_artists) == 0:
             return
     

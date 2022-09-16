@@ -49,12 +49,13 @@ class MultiplePossibleRoiModeBase(ToolbarModeBase):
         print("Calling RoiBaseMode __init__...")
 
         def apply_mode(mode):
-            self.viewer.apply_roi(self.roi(), self._axis_num)
+            self.viewer.apply_roi(self.roi(), self._col_axis_num, self._row_axis_num)
         self._roi_callback = kwargs.pop('roi_callback', apply_mode)
         super(MultiplePossibleRoiModeBase, self).__init__(viewer, **kwargs)
         self._roi_tools = []
         self._roi_tool = None
-        self._axis_num = 0 
+        self._row_axis_num = 0 
+        self._col_axis_num = 0 
 
     def close(self, *args):
         self._roi_callback = None
@@ -153,10 +154,11 @@ class MultiplePossibleRoiMode(MultiplePossibleRoiModeBase):
         for axes,_roi_tool in zip(self._axes_array.flatten(),self._roi_tools):
             if event.inaxes == axes:
                 self._roi_tool = _roi_tool
-                self._axis_num = i
+                self._col_axis_num, self._row_axis_num = np.unravel_index(i,self._axes_array.shape)
             i+=1
         print(f"{self._roi_tool=}")
-        print(f"{self._axis_num=}")
+        print(f"{self._col_axis_num=}")
+        print(f"{self._row_axis_num=}")
 
         self._update_drag(event)
         if self._drag:
@@ -208,6 +210,8 @@ class FacetRectangleMode(MultiplePossibleRoiMode):
         data_space = not hasattr(viewer.state, 'plot_mode') or viewer.state.plot_mode == 'rectilinear'
         self._axes_array = getattr(viewer, 'axes_array', None)
         self._roi_tools = []
+        if self._axes_array is None:
+            return
         for axes in self._axes_array.flatten():
             self._roi_tools.append(roi.MplRectangularROI(axes, data_space=data_space))
 
@@ -237,19 +241,79 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
             self.figure.delaxes(self.axes)
         #print(f"{self.state.layers_data=}")
         #This axes_array will need to be changed (entirely?) if we change the number of rows and columns
-        self.axes_array = self.figure.subplots(self.state.num_rows, self.state.num_cols, sharex=True, sharey=True, squeeze=False)
-        self.axes = self.axes_array[0][0] #This is used for setting limits and tick marks, it's a bit hacky
+        #self.axes_array = self.figure.subplots(self.state.num_rows, self.state.num_cols, sharex=True, sharey=True, squeeze=False)
+        #self.axes = self.axes_array[0][0] #This is used for setting limits and tick marks, it's a bit hacky
         #print(f"{self.state.layers_data=}")
+        self.axes_array = self.figure.subplots(self.state.num_rows, self.state.num_cols, sharex=True, sharey=True, squeeze=False)
+        self.axes = self.axes_array[0][0]
+        print(id(self.axes_array))
 
         MatplotlibScatterMixin.setup_callbacks(self)
         
+        self.state.add_callback('num_cols', self._configure_axes_array)
+        #self.state.add_callback('num_rows', self._configure_axes_array)
+        #self._configure_axes_array()
+        #self.state.add_callback('num_cols', self._configure_axes_array)
+        #self.state.add_callback('num_rows', self._configure_axes_array)
+
         #self.init_pan_tracking(self.axes)
     
+    def _configure_axes_array(self, *args):
+        #print(args)
+        #if self.axes is not None and self.figure is not None:
+        #    self.figure.delaxes(self.axes)
+        #if self.axes_array is not None and self.figure is not None:
+        #    for ax in self.axes_array:
+        #        self.figure.delaxes(ax)
+        #        #ax.remove()
+
+        if self.axes_array.shape == (self.state.num_rows, self.state.num_cols):
+            print("Axes array is already the right shape, returning...")
+            return
+
+        # The following code blanks things out
+        for ax in self.figure.axes:
+            self.figure.delaxes(ax)
+        self.redraw()
+
+        print("Calling _configure_axes_array...")
+        self.axes_array = self.figure.subplots(self.state.num_rows, self.state.num_cols, sharex=True, sharey=True, squeeze=False)
+        self.axes = self.axes_array[0][0]
+        self.remove_all_toolbars()
+        self.initialize_toolbar()
+        for layer in self.layers:
+            layer._set_axes(axes=self.axes_array)
+            layer.state.vector_mode = 'Cartesian'
+            layer.state._update_points_mode()
+            layer.update()
+        self.axes.callbacks.connect('xlim_changed', self.limits_from_mpl)
+        self.axes.callbacks.connect('ylim_changed', self.limits_from_mpl)
+        self.update_x_axislabel()
+        self.update_y_axislabel()
+        self.update_x_ticklabel()
+        self.update_y_ticklabel()
+        self.state.x_log = self.state.y_log = False
+        self.state.reset_limits()
+
+        self.limits_to_mpl()
+        self.limits_from_mpl()
+
+        # We need to update the tick marks
+        # to account for the radians/degrees switch in polar mode
+        # Also need to add/remove axis labels as necessary
+        self._update_axes()
+
+        self.figure.canvas.draw_idle()
+
+        print(id(self.axes_array))
+        #self.axes.figure.canvas.draw_idle()
+
+
     def get_layer_artist(self, cls, layer=None, layer_state=None):
         return cls(self.axes_array, self.state, layer=layer, layer_state=layer_state)
 
-    def apply_roi(self, roi, axis_num=0, override_mode=None):
-        print(self.state.data_facet_subsets)
+    def apply_roi(self, roi, col_axis_num=0, row_axis_num=0, override_mode=None):
+        #print(self.state.data_facet_subsets)
         self.redraw()
         
         if len(self.layers) == 0:
@@ -273,7 +337,7 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
                                                                self.axes.get_ylim(),
                                                                self.axes.get_xscale(),
                                                                self.axes.get_yscale())
-        facet_state = self.state.data_facet_subsets[axis_num].subset_state #We need to get this index back from the roi_tool
+        facet_state = self.state.data_facet_subsets[col_axis_num][row_axis_num].subset_state #We need to get this index back from the roi_tool
         subset_state = subset_state & facet_state
         self.apply_subset_state(subset_state, override_mode=override_mode)
 
