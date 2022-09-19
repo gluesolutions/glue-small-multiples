@@ -54,18 +54,19 @@ class TestSmallMultiplesViewer(object):
 
         viewer_state.x_att = self.penguin_data.id['bill_length_mm']
         viewer_state.y_att = self.penguin_data.id['bill_depth_mm']
-        assert len(viewer_state.layers_data) == 1
 
         viewer_state.col_facet_att = self.penguin_data.id['species']
-        print(viewer_state.data_facet_masks[0])
 
-        assert len(viewer_state.layers_data) == 4 # We have 4 layers here, when we really should have just 3?
-
-        assert len(self.viewer.layers) == 1
+        assert len(self.viewer.layers) == 1 # Just one dataset
+        assert len(viewer_state.layers) == 4 # We have 4 layers here: one SmallMultiplesLayerArtist and 3 FacetScatterLayerArtist
         assert len(self.viewer.layers[0].scatter_layer_artists) == 3
-        assert viewer_state.data_facet_masks[0].count() == NUM_ADELIE
-        assert viewer_state.data_facet_masks[1].count() == NUM_CHINSTRAP
-        assert viewer_state.data_facet_masks[2].count() == NUM_GENTOO
+        adelie = viewer_state.data_facet_masks[0][0]
+        chinstrap = viewer_state.data_facet_masks[0][1]
+        gentoo = viewer_state.data_facet_masks[0][2]
+
+        assert np.size(adelie) - np.count_nonzero(adelie) == NUM_ADELIE
+        assert np.size(chinstrap) - np.count_nonzero(chinstrap) == NUM_CHINSTRAP
+        assert np.size(gentoo) - np.count_nonzero(gentoo) == NUM_GENTOO
         #assert len(viewer_state.layers_data) == 3
 
     def test_layer_styles(self):
@@ -136,8 +137,9 @@ class TestSmallMultiplesViewer(object):
         #yo._update_data()
         #yo.redraw()
         
-        sub_data = yo.plot_artist.get_data()
-        assert len(sub_data[0]) == 14
+        x,y = yo.plot_artist.get_data()
+        unmasked_x = x[x.mask == False]
+        assert len(unmasked_x) > 14
         
 
     def test_session_save_and_restore(self, tmpdir):

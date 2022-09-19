@@ -98,8 +98,8 @@ class SmallMultiplesViewerState(ScatterViewerState):
             self.temp_num_rows = 1
         print(f"New dimensions are: {self.temp_num_cols=} x {self.temp_num_rows=}")
         
+        self._facets_changed()
         if (self.num_cols != self.temp_num_cols) or (self.num_rows != self.temp_num_rows):
-            self._facets_changed()
             self.num_cols = self.temp_num_cols
             self.num_rows = self.temp_num_rows
             print(f"We have changed dimensions to: {self.num_cols=} x {self.num_rows=}")

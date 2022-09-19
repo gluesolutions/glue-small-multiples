@@ -64,12 +64,15 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
         #ipdb.set_trace()
         if self._viewer_state.axes_subplots is not None:
             self.axes_subplots = self._viewer_state.axes_subplots
+
         for sla in self.scatter_layer_artists:
+            self._viewer_state.layers.remove(sla.state)
             sla.clear()
             sla.remove()
 
         self.scatter_layer_artists = []
         self.scatter_layer_artists_syncs = []
+
 
         flat_axes = self.axes_subplots.flatten()
         flat_facet_masks = [item for sublist in self._viewer_state.data_facet_masks for item in sublist]
@@ -77,6 +80,11 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
         if len(flat_axes) != len(flat_facet_masks):
             print("#### MISMATCH BETWEEN axes and facets ####")
             return 
+        #for layer in self._viewer_state.layers:
+        #    if type(layer) is FacetScatterLayerState:
+        #        print(f"Removing {layer.title}...")
+        #        self._viewer_state.layers.remove(layer)
+
         print(f"{len(flat_axes)=}")
         print(f"{len(flat_facet_masks)=}")
         print(f"{len(flat_facet_subsets)=}")
@@ -91,7 +99,7 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
             for visual_property in (CMAP_PROPERTIES | MARKER_PROPERTIES | LINE_PROPERTIES):
                 sla_sync = keep_in_sync(self.state, visual_property, sla.state, visual_property)
                 self.scatter_layer_artists_syncs.append(sla_sync)
-            #sla._update_scatter(force=True)
+            sla._update_scatter(force=True)
 
     @defer_draw
     def _update_scatter(self, force=False, **kwargs):
@@ -128,54 +136,15 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
     def __init__(self, axes, viewer_state, layer_state=None, layer=None, 
                  facet_mask=None, facet_subset=None, scatter_state=None):
         print("In __init__ for FacetScatterLayerArtist")
-        #ipdb.set_trace()
-        
-        # We get one of these before the big _update_scatter with all the 
-        # elements call...
-
-        # Which is fine, I guess. 
-        
         #print(f"At start of __init__, {len(viewer_state.layers)=}")
         super().__init__(axes, viewer_state, layer_state=layer_state, layer=layer)
         #print(f"After super of __init__, {len(viewer_state.layers)=}")
 
-        # I THINK that during this __init__ process we add
-        # a bunch of extra data layers to the state
-        # but because we are creating/re-creating these Artists
-        # these layers do not get cleaned up
-        
-        # They *should* by the viewer calls to _sync_state_layers
-        # and _sync_layer_artist_container, but they are not?
-
-        # It is not clear what ramifications there are not
-        # NOT having these artists in the layers container directly
-        # Quite possibly not having them here prevents 
-        # things from redrawing automatically
-
-        # the following does not work
-        # but is, in spirit, what we want
-        # the viewer_state object does not need to keep
-        # references to all this stuff
-        
-        # We STILL have the problem that 
-        # by the time we get to this set_trace for the first
-        # time we already have 3 layers
-        
-        #viewer_state.layers.remove(self.state)
-        #print(f"Trying to remove one... {len(viewer_state.layers)=}")
-
-        # Somehow we make a facetlayerstate without doing ._update_title...
-
-        # Maybe... on_artist_add in layer_artist_model?
-        # Not sure about that...
-
-        #_ = self._viewer_state.layers.pop()
         self.state.facet_mask = facet_mask
         self.state.facet_subset = facet_subset
         self.state._update_title()
         self.facet_mask = self.state.facet_mask
         
-        # DO we need to set up the states here?
         # Or can we rely on keep_in_sync?
 
         #if scatter_state is not None:
@@ -183,13 +152,10 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
         #print(f"{self.state=}")
         #print(f"{self.facet_mask=}")
 
-        print(f"The above __init__ was for {self.state.title=}")
-
         # We create new FacetScatterLayerArtists (and associated) state
         # whenever we change the facets, so we need to make sure that the
         # state starts out in sync with the overarching layer state
         # TODO: It is more naturally to do this in state __init__?
-
 
     @defer_draw
     def _update_scatter(self, force=False, **kwargs):
