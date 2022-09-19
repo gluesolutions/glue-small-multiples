@@ -54,15 +54,18 @@ class TestSmallMultiplesViewer(object):
 
         viewer_state.x_att = self.penguin_data.id['bill_length_mm']
         viewer_state.y_att = self.penguin_data.id['bill_depth_mm']
+        assert len(viewer_state.layers_data) == 1
+
         viewer_state.col_facet_att = self.penguin_data.id['species']
-        #assert len(viewer_state.layers_data) == 3 # We have 4 layers here, when we really should have just 3?
+        print(viewer_state.data_facet_masks[0])
+
+        assert len(viewer_state.layers_data) == 4 # We have 4 layers here, when we really should have just 3?
 
         assert len(self.viewer.layers) == 1
         assert len(self.viewer.layers[0].scatter_layer_artists) == 3
         assert viewer_state.data_facet_masks[0].count() == NUM_ADELIE
         assert viewer_state.data_facet_masks[1].count() == NUM_CHINSTRAP
         assert viewer_state.data_facet_masks[2].count() == NUM_GENTOO
-
         #assert len(viewer_state.layers_data) == 3
 
     def test_layer_styles(self):

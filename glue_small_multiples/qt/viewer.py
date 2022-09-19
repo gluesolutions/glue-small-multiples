@@ -251,8 +251,8 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
 
         MatplotlibScatterMixin.setup_callbacks(self)
         
-        self.state.add_callback('num_cols', self._configure_axes_array)
-        self.state.add_callback('num_rows', self._configure_axes_array)
+        self.state.add_callback('num_cols', self._configure_axes_array, priority=9999)
+        self.state.add_callback('num_rows', self._configure_axes_array, priority=9999)
         #self._configure_axes_array()
         #self.state.add_callback('num_cols', self._configure_axes_array)
         #self.state.add_callback('num_rows', self._configure_axes_array)
@@ -260,54 +260,65 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
         #self.init_pan_tracking(self.axes)
     
     def _configure_axes_array(self, *args):
-        #print(args)
-        #if self.axes is not None and self.figure is not None:
-        #    self.figure.delaxes(self.axes)
-        #if self.axes_array is not None and self.figure is not None:
-        #    for ax in self.axes_array:
-        #        self.figure.delaxes(ax)
-        #        #ax.remove()
-        print(" -------- Calling _configure_axes_array...")
 
-        if self.axes_array.shape == (self.state.num_cols, self.state.num_cols):
-            print("Axes array is already the right shape, returning...")
-            return
-
-        # The following code blanks things out
-        for ax in self.figure.axes:
-            self.figure.delaxes(ax)
-        self.redraw()
-
-        self.axes_array = self.figure.subplots(self.state.num_rows, self.state.num_cols, sharex=True, sharey=True, squeeze=False)
-        self.axes = self.axes_array[0][0]
-        self.remove_all_toolbars()
-        self.initialize_toolbar()
-        for layer in self.layers:
-            layer._set_axes(axes=self.axes_array)
-            layer.state.vector_mode = 'Cartesian'
-            layer.state._update_points_mode()
-            layer.update()
-        self.axes.callbacks.connect('xlim_changed', self.limits_from_mpl)
-        self.axes.callbacks.connect('ylim_changed', self.limits_from_mpl)
-        self.update_x_axislabel()
-        self.update_y_axislabel()
-        self.update_x_ticklabel()
-        self.update_y_ticklabel()
-        self.state.x_log = self.state.y_log = False
-        self.state.reset_limits()
-
-        self.limits_to_mpl()
-        self.limits_from_mpl()
-
-        # We need to update the tick marks
-        # to account for the radians/degrees switch in polar mode
-        # Also need to add/remove axis labels as necessary
-        self._update_axes()
-
-        self.figure.canvas.draw_idle()
-
-        print(id(self.axes_array))
-        #self.axes.figure.canvas.draw_idle()
+        with delay_callback(self.state, 'num_cols','num_cols'):
+            # I took some of this code from _update_projection
+            # in scatter._update_projection
+            # but I'm not sure that this is correct, because viewer does
+            # not define self.layers
+    
+            #print(args)
+            #if self.axes is not None and self.figure is not None:
+            #    self.figure.delaxes(self.axes)
+            #if self.axes_array is not None and self.figure is not None:
+            #    for ax in self.axes_array:
+            #        self.figure.delaxes(ax)
+            #        #ax.remove()
+            print(" -------- Calling _configure_axes_array...")
+            #import ipdb; ipdb.set_trace()
+            if self.axes_array.shape == (self.state.num_rows, self.state.num_cols):
+                print("Axes array is already the right shape, returning...")
+                return
+    
+            # The following code blanks things out
+            for ax in self.figure.axes:
+                self.figure.delaxes(ax)
+            self.redraw()
+    
+            self.axes_array = self.figure.subplots(self.state.num_rows, self.state.num_cols, sharex=True, sharey=True, squeeze=False)
+            self.axes = self.axes_array[0][0]
+            self.remove_all_toolbars()
+            self.initialize_toolbar()
+            self.state._set_axes_subplots(axes_subplots=self.axes_array)
+            #for layer_state in self.state.layers:
+            #    layer_state._set_axes(axes=self.axes_array)
+            #for layer_artist in self._layer_artist_container:
+            #    print("Found at least one layer_artist to update")
+            #    layer_artist._set_axes(axes=self.axes_array, from_viewer=True)
+            #    layer_artist.state.vector_mode = 'Cartesian'
+            #    layer_artist.state._update_points_mode()
+            #    layer_artist.update()
+            self.axes.callbacks.connect('xlim_changed', self.limits_from_mpl)
+            self.axes.callbacks.connect('ylim_changed', self.limits_from_mpl)
+            self.update_x_axislabel()
+            self.update_y_axislabel()
+            self.update_x_ticklabel()
+            self.update_y_ticklabel()
+            self.state.x_log = self.state.y_log = False
+            self.state.reset_limits()
+    
+            self.limits_to_mpl()
+            self.limits_from_mpl()
+    
+            # We need to update the tick marks
+            # to account for the radians/degrees switch in polar mode
+            # Also need to add/remove axis labels as necessary
+            self._update_axes()
+    
+            self.figure.canvas.draw_idle()
+    
+            print(id(self.axes_array))
+            #self.axes.figure.canvas.draw_idle()
 
 
     def get_layer_artist(self, cls, layer=None, layer_state=None):

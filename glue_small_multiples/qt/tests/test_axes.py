@@ -49,26 +49,32 @@ class TestSmallMultiplesViewer(object):
     def test_basic(self):
         viewer_state = self.viewer.state
 
-        assert len(self.viewer.layers[0].scatter_layer_artists) == 9
+        assert len(self.viewer.layers[0].scatter_layer_artists) == 3
+        assert len(self.viewer.state.layers) == 4
         yo = self.viewer.layers[0].scatter_layer_artists[0]
                 
         x,y = yo.plot_artist.get_data()
         unmasked_x = x[x.mask == False]
         assert len(unmasked_x) > 10
-        assert False
-        #viewer_state.x_att = self.penguin_data.id['bill_length_mm']
-        #viewer_state.y_att = self.penguin_data.id['bill_depth_mm']
+
+        viewer_state.x_att = self.penguin_data.id['bill_length_mm']
+        viewer_state.y_att = self.penguin_data.id['bill_depth_mm']
         
-        #yo = self.viewer.layers[0].scatter_layer_artists[0]
+        yo = self.viewer.layers[0].scatter_layer_artists[1]
                 
-        #sub_data = yo.plot_artist.get_data()
-        #assert len(sub_data) > 10
+        x,y = yo.plot_artist.get_data()
+        unmasked_x = x[x.mask == False]
+        assert len(unmasked_x) > 10
 
-#viewer_state.col_facet_att = self.penguin_data.id['species']
+        viewer_state.row_facet_att = self.penguin_data.id['island']
 
-        #assert len(self.viewer.layers) == 1
-        #assert len(self.viewer.layers[0].scatter_layer_artists) == 3
+        assert len(self.viewer.layers) == 1
+        assert len(self.viewer.layers[0].scatter_layer_artists) == 9
         #assert viewer_state.data_facet_masks[0].count() == NUM_ADELIE
         #assert viewer_state.data_facet_masks[1].count() == NUM_CHINSTRAP
         #assert viewer_state.data_facet_masks[2].count() == NUM_GENTOO
 
+        viewer_state.row_facet_att = self.penguin_data.id['sex']
+
+        assert len(self.viewer.layers) == 1
+        assert len(self.viewer.layers[0].scatter_layer_artists) == 6

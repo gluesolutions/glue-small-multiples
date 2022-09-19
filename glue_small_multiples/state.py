@@ -42,26 +42,26 @@ class SmallMultiplesViewerState(ScatterViewerState):
     The user can chose to facet on one or two categorical attributes.
     Ideally we should allow them to facet on integer attributes too.
     """
-    col_facet_att = DDSCProperty(docstring='The attribute to facet columns by', default_index=2)
-    row_facet_att = DDSCProperty(docstring='The attribute to facet rows by', default_index=0)
+    col_facet_att = DDSCProperty(docstring='The attribute to facet columns by', default_index=0) #Specifying default_index with a ComboHelper with none does not work
+    row_facet_att = DDSCProperty(docstring='The attribute to facet rows by', default_index=1)
     # We should be able to make these spinners in the GUI that cannot go below 1
     max_num_cols = DDCProperty(3, docstring='The maximum number of columns to show')
     max_num_rows = DDCProperty(3, docstring='The maximum number of rows to show')
 
-    num_cols = DDCProperty(3, docstring="The number of columns to display in the grid")
+    num_cols = DDCProperty(1, docstring="The number of columns to display in the grid")
     num_rows = DDCProperty(1, docstring="The number of rows to display in the grid")
 
     reference_data = DDSCProperty(docstring='The dataset being displayed')
 
     def __init__(self, **kwargs):
+        self.axes_subplots = None
+
         super().__init__()
         self.data_facet_masks = [] # We can only initialize this if we have a dataset defined
         self.data_facet_subsets = []
-
         self.ref_data_helper = ManualDataComboHelper(self, 'reference_data')
-        self.col_facet_att_helper = ComponentIDComboHelper(self, 'col_facet_att', categorical=True, numeric=False, none="None")
-        self.row_facet_att_helper = ComponentIDComboHelper(self, 'row_facet_att', categorical=True, numeric=False, none="None")
-
+        self.col_facet_att_helper = ComponentIDComboHelper(self, 'col_facet_att', categorical=True, numeric=False)
+        self.row_facet_att_helper = ComponentIDComboHelper(self, 'row_facet_att', categorical=True, numeric=False, none=True)
         self.update_from_dict(kwargs)
 
         self.add_callback('col_facet_att', self._update_num_rows_cols, priority=10000)
@@ -70,9 +70,16 @@ class SmallMultiplesViewerState(ScatterViewerState):
         self.add_callback('max_num_cols', self._update_num_rows_cols, priority=10000)
         self.add_callback('max_num_rows', self._update_num_rows_cols, priority=10000)
 
-        #self._facets_changed()
+        self._facets_changed()
+
+    def _set_axes_subplots(self, axes_subplots=None):
+        if axes_subplots is None:
+            return
+        self.axes_subplots = axes_subplots
 
     def _update_num_rows_cols(self, *args):
+        #with delay_callback(self, 'num_cols', 'num_rows'):
+
         print("Calling _update_num_rows_cols")
         print(f"orig {self.num_cols=}")
         print(f"orig {self.num_rows=}")
@@ -91,29 +98,22 @@ class SmallMultiplesViewerState(ScatterViewerState):
             self.temp_num_rows = 1
         print(f"New dimensions are: {self.temp_num_cols=} x {self.temp_num_rows=}")
         
-        self._facets_changed()
-        self.num_cols = self.temp_num_cols
-        self.num_rows = self.temp_num_rows
-
-        print(f"We have changed dimensions to: {self.num_cols=} x {self.num_rows=}")
+        if (self.num_cols != self.temp_num_cols) or (self.num_rows != self.temp_num_rows):
+            self._facets_changed()
+            self.num_cols = self.temp_num_cols
+            self.num_rows = self.temp_num_rows
+            print(f"We have changed dimensions to: {self.num_cols=} x {self.num_rows=}")
 
     def _facets_changed(self, *args):
         print("Calling _facets_changed")
         print(f"{self.col_facet_att=}")
         print(f"{self.row_facet_att=}")
-        print(f"{self.temp_num_cols=}")
-        print(f"{self.temp_num_rows=}")
+        #print(f"{self.temp_num_cols=}")
+        #print(f"{self.temp_num_rows=}")
 
         if ((self.col_facet_att is None) and (self.row_facet_att is None)) or (self.reference_data is  None):
             print("Returning from _facets_changed...")
             return
-
-        #with delay_callback(self, 'data_facet_masks', 'data_facet_subsets'):
-    
-            #for data_facet_mask in self.data_facet_masks:
-            #    del data_facet_mask
-            #for data_facet_subset in self.data_facet_subsets:
-            #    del data_facet_subset
 
         self.data_facet_masks = []
         self.data_facet_subsets = []
@@ -181,6 +181,9 @@ class SmallMultiplesViewerState(ScatterViewerState):
         print("Finished with from _facets_changed...")
 
     def _layers_changed(self, *args):
+        """
+        This probably isn't really correct for ref_data
+        """
 
         layers_data = self.layers_data
         layers_data_cache = getattr(self, '_layers_data_cache', [])
@@ -188,11 +191,11 @@ class SmallMultiplesViewerState(ScatterViewerState):
         if layers_data == layers_data_cache:
             return
 
-        self.ref_data_helper.set_multiple_data(self.layers_data)
-        self.x_att_helper.set_multiple_data(self.layers_data)
-        self.y_att_helper.set_multiple_data(self.layers_data)
-        self.col_facet_att_helper.set_multiple_data(self.layers_data)
-        self.row_facet_att_helper.set_multiple_data(self.layers_data)
+        self.ref_data_helper.set_multiple_data(layers_data)
+        self.x_att_helper.set_multiple_data(layers_data)
+        self.y_att_helper.set_multiple_data(layers_data)
+        self.col_facet_att_helper.set_multiple_data(layers_data)
+        self.row_facet_att_helper.set_multiple_data(layers_data)
 
         self._layers_data_cache = layers_data
 
@@ -208,6 +211,10 @@ class FacetScatterLayerState(ScatterLayerState):
         print("__init__ is done...")
 
     def _update_title(self):
+        """
+        Title should probably be a Callback Property thing
+        """
+    
         try:
             self.title = self.facet_subset.label
         except AttributeError: #This is for an AndState
@@ -250,10 +257,7 @@ class FacetScatterLayerState(ScatterLayerState):
 class SmallMultiplesLayerState(ScatterLayerState):
     """
     This is probably just a ScatterLayerState?
-    
-    Yeah, maybe. Everything that controls how the points are drawn on all the child axes
-    can be here. child axes are NOT separate layers, they don't have separate layer artists,
-    so there's no way to deal with them separately. One artist/state draws to multiple child axes. 
     """
     def __init__(self, viewer_state=None, layer=None, **kwargs):
-        super(SmallMultiplesLayerState, self).__init__(viewer_state=viewer_state, layer=layer)
+        super().__init__(viewer_state=viewer_state, layer=layer)
+
