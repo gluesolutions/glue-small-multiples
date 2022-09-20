@@ -119,10 +119,12 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
     @defer_draw
     def update(self):
         self._update_scatter()
+        for sla in self.scatter_layer_artists:
+            sla.update()
         self.redraw()
 
     def redraw(self):
-        pass # Is this okay?
+        pass # There is nothing to actually draw for this artist
 
 
 class FacetScatterLayerArtist(ScatterLayerArtist):
@@ -136,6 +138,9 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
     def __init__(self, axes, viewer_state, layer_state=None, layer=None, 
                  facet_mask=None, facet_subset=None, scatter_state=None):
         print("In __init__ for FacetScatterLayerArtist")
+        #import ipdb; ipdb.set_trace()
+        self.density_artist = None # Hack to avoid an AttributeError because density_artist does
+                                   # not get fully initialized before a callback fires
         #print(f"At start of __init__, {len(viewer_state.layers)=}")
         super().__init__(axes, viewer_state, layer_state=layer_state, layer=layer)
         #print(f"After super of __init__, {len(viewer_state.layers)=}")
@@ -144,18 +149,8 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
         self.state.facet_subset = facet_subset
         self.state._update_title()
         self.facet_mask = self.state.facet_mask
-        
-        # Or can we rely on keep_in_sync?
-
-        #if scatter_state is not None:
-        #    self.state.update_from_state(scatter_state)
-        #print(f"{self.state=}")
-        #print(f"{self.facet_mask=}")
-
-        # We create new FacetScatterLayerArtists (and associated) state
-        # whenever we change the facets, so we need to make sure that the
-        # state starts out in sync with the overarching layer state
-        # TODO: It is more naturally to do this in state __init__?
+        if scatter_state is not None:
+            self.state.update_from_state(scatter_state)
 
     @defer_draw
     def _update_scatter(self, force=False, **kwargs):
