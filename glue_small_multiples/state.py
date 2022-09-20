@@ -18,7 +18,7 @@ from glue.viewers.scatter.state import ScatterLayerState, ScatterViewerState
 __all__ = ['FacetSubset', 'SmallMultiplesViewerState', 'FacetScatterLayerState', 'SmallMultiplesLayerState']
 
 class FacetSubset(Subset):
-    """Just a convenience class to prevent facet subset labels from
+    """A convenience class to prevent facet subset labels from
     getting the extra disambiguation stuff.
     """
     def __init__(self, data, color=None, alpha=0.5, label=None):
@@ -45,8 +45,8 @@ class SmallMultiplesViewerState(ScatterViewerState):
     col_facet_att = DDSCProperty(docstring='The attribute to facet columns by', default_index=0) #Specifying default_index with a ComboHelper with none does not work
     row_facet_att = DDSCProperty(docstring='The attribute to facet rows by', default_index=1)
     # We should be able to make these spinners in the GUI that cannot go below 1
-    max_num_cols = DDCProperty(3, docstring='The maximum number of columns to show')
-    max_num_rows = DDCProperty(3, docstring='The maximum number of rows to show')
+    max_num_cols = DDCProperty(5, docstring='The maximum number of columns to show')
+    max_num_rows = DDCProperty(5, docstring='The maximum number of rows to show')
 
     num_cols = DDCProperty(1, docstring="The number of columns to display in the grid")
     num_rows = DDCProperty(1, docstring="The number of rows to display in the grid")
@@ -80,12 +80,7 @@ class SmallMultiplesViewerState(ScatterViewerState):
     def _update_num_rows_cols(self, *args):
         #with delay_callback(self, 'num_cols', 'num_rows'):
 
-        print("Calling _update_num_rows_cols")
-        print(f"orig {self.num_cols=}")
-        print(f"orig {self.num_rows=}")
-
         if (self.reference_data is None) or (self.max_num_rows is None) or (self.max_num_cols is None):
-            print("Returning from _update_num_rows_cols...")
             return
 
         if self.col_facet_att is not None:
@@ -96,28 +91,19 @@ class SmallMultiplesViewerState(ScatterViewerState):
             self.temp_num_rows = min(self.max_num_rows, len(self.reference_data[self.row_facet_att].categories))
         else:
             self.temp_num_rows = 1
-        print(f"New dimensions are: {self.temp_num_cols=} x {self.temp_num_rows=}")
         
         self._facets_changed()
         if (self.num_cols != self.temp_num_cols) or (self.num_rows != self.temp_num_rows):
             self.num_cols = self.temp_num_cols
             self.num_rows = self.temp_num_rows
-            print(f"We have changed dimensions to: {self.num_cols=} x {self.num_rows=}")
 
     def _facets_changed(self, *args):
-        print("Calling _facets_changed")
-        print(f"{self.col_facet_att=}")
-        print(f"{self.row_facet_att=}")
-        #print(f"{self.temp_num_cols=}")
-        #print(f"{self.temp_num_rows=}")
 
         if ((self.col_facet_att is None) and (self.row_facet_att is None)) or (self.reference_data is  None):
-            print("Returning from _facets_changed...")
             return
 
         self.data_facet_masks = []
         self.data_facet_subsets = []
-        print("Trying to set self.data_facets")
         # We create both a simple mask and a subset representing the facet.
         # This is redundant, but the Density mode really wants a subset
         # and the regular/point mode wants a precomputed mask
@@ -178,7 +164,6 @@ class SmallMultiplesViewerState(ScatterViewerState):
 
         except IndexError:
             pass
-        print("Finished with from _facets_changed...")
 
     def _layers_changed(self, *args):
         """
@@ -202,19 +187,10 @@ class SmallMultiplesViewerState(ScatterViewerState):
 
 class FacetScatterLayerState(ScatterLayerState):
     def __init__(self, viewer_state=None, layer=None, **kwargs):
-        print("In __init__ for FacetScatterLayerState...")
-        #self.title = ""
-        #self.facet_mask = facet_mask
-        
-        #self.state = scatter_state # Set up with the layer state
         super().__init__(viewer_state=viewer_state, layer=layer)
-        print("__init__ is done...")
 
     def _update_title(self):
-        """
-        Title should probably be a Callback Property thing
-        """
-    
+        # TODO: title should be a callback property?    
         try:
             self.title = self.facet_subset.label
         except AttributeError: #This is for an AndState

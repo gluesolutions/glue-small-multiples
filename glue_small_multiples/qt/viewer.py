@@ -227,77 +227,47 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
 
     _options_cls = SmallMultiplesOptionsWidget
     _data_artist_cls = SmallMultiplesLayerArtist
-    _subset_artist_cls = SmallMultiplesLayerArtist #Do we need a subset artist?
+    _subset_artist_cls = SmallMultiplesLayerArtist
 
     tools = ['select:facetrectangle']
-    #tools = ['select:xrange'] #Setting up this tool fails because we have a LIST of axes, not a single one...
-    # In the Genome Track Viewer we have a bunch of child axes underneath a parent, but we only select
-    # on the x axis, so that does not really matter. Here we have so many other complications for these tools
-    # that I think we'll need totally cutom ones.
 
     def __init__(self, session, parent=None, state=None):
         proj = None if not state or not state.plot_mode else state.plot_mode
         MatplotlibDataViewer.__init__(self, session, parent=parent, state=state, projection=proj)
         if self.axes is not None and self.figure is not None:
             self.figure.delaxes(self.axes)
-        #print(f"{self.state.layers_data=}")
-        #This axes_array will need to be changed (entirely?) if we change the number of rows and columns
-        #self.axes_array = self.figure.subplots(self.state.num_rows, self.state.num_cols, sharex=True, sharey=True, squeeze=False)
-        #self.axes = self.axes_array[0][0] #This is used for setting limits and tick marks, it's a bit hacky
-        #print(f"{self.state.layers_data=}")
-        self.axes_array = self.figure.subplots(self.state.num_rows, self.state.num_cols, sharex=True, sharey=True, squeeze=False)
+        self.axes_array = self.figure.subplots(self.state.num_rows, self.state.num_cols,
+                                               sharex=True, sharey=True, squeeze=False)
         self.axes = self.axes_array[0][0]
-        print(id(self.axes_array))
 
         MatplotlibScatterMixin.setup_callbacks(self)
-        
+
         self.state.add_callback('num_cols', self._configure_axes_array, priority=9999)
         self.state.add_callback('num_rows', self._configure_axes_array, priority=9999)
-        #self._configure_axes_array()
-        #self.state.add_callback('num_cols', self._configure_axes_array)
-        #self.state.add_callback('num_rows', self._configure_axes_array)
 
         #self.init_pan_tracking(self.axes)
     
     def _configure_axes_array(self, *args):
 
         with delay_callback(self.state, 'num_cols','num_cols'):
-            # I took some of this code from _update_projection
-            # in scatter._update_projection
-            # but I'm not sure that this is correct, because viewer does
-            # not define self.layers
-    
-            #print(args)
-            #if self.axes is not None and self.figure is not None:
-            #    self.figure.delaxes(self.axes)
-            #if self.axes_array is not None and self.figure is not None:
-            #    for ax in self.axes_array:
-            #        self.figure.delaxes(ax)
-            #        #ax.remove()
-            print(" -------- Calling _configure_axes_array...")
-            #import ipdb; ipdb.set_trace()
+            """
+            I took some of this code from _update_projection
+            in scatter._update_projection
+            """
+            # If the axes are the right shape we should just return
             if self.axes_array.shape == (self.state.num_rows, self.state.num_cols):
-                print("Axes array is already the right shape, returning...")
                 return
-    
-            # The following code blanks things out
+
             for ax in self.figure.axes:
                 self.figure.delaxes(ax)
             self.redraw()
-    
-            self.axes_array = self.figure.subplots(self.state.num_rows, self.state.num_cols, sharex=True, sharey=True, squeeze=False)
+
+            self.axes_array = self.figure.subplots(self.state.num_rows, self.state.num_cols, 
+                                                   sharex=True, sharey=True, squeeze=False)
             self.axes = self.axes_array[0][0]
             self.remove_all_toolbars()
             self.initialize_toolbar()
             self.state._set_axes_subplots(axes_subplots=self.axes_array)
-            #for layer_state in self.state.layers:
-            #    layer_state._set_axes(axes=self.axes_array)
-            #for layer_artist in self._layer_artist_container:
-            #    print("Found at least one layer_artist to update")
-            #    layer_artist._set_axes(axes=self.axes_array, from_viewer=True)
-            #    layer_artist.state.vector_mode = 'Cartesian'
-            #    layer_artist.state._update_points_mode()
-            #    layer_artist.update()
             self.axes.callbacks.connect('xlim_changed', self.limits_from_mpl)
             self.axes.callbacks.connect('ylim_changed', self.limits_from_mpl)
             self.update_x_axislabel()
@@ -306,19 +276,16 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
             self.update_y_ticklabel()
             self.state.x_log = self.state.y_log = False
             self.state.reset_limits()
-    
+
             self.limits_to_mpl()
             self.limits_from_mpl()
-    
+
             # We need to update the tick marks
             # to account for the radians/degrees switch in polar mode
             # Also need to add/remove axis labels as necessary
             self._update_axes()
-    
+
             self.figure.canvas.draw_idle()
-    
-            print(id(self.axes_array))
-            #self.axes.figure.canvas.draw_idle()
 
 
     def get_layer_artist(self, cls, layer=None, layer_state=None):
@@ -333,11 +300,11 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
 
         x_date = 'datetime' in self.state.x_kinds
         y_date = 'datetime' in self.state.y_kinds
-        
+
         #if x_date or y_date:
         #   roi = roi.transformed(xfunc=mpl_to_datetime64 if x_date else None,
         #                          yfunc=mpl_to_datetime64 if y_date else None)
-        
+
         use_transform = False#self.state.plot_mode != 'rectilinear'
         subset_state = roi_to_subset_state(roi,
                                            x_att=self.state.x_att, x_categories=self.state.x_categories,
