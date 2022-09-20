@@ -1,5 +1,4 @@
 import numpy as np
-import ipdb
 from echo import keep_in_sync
 
 from glue.core import BaseData, Subset
@@ -17,6 +16,7 @@ from .state import SmallMultiplesLayerState, FacetScatterLayerState
 __all__ = ['SmallMultiplesLayerArtist', 'FacetScatterLayerArtist']
 
 
+# TODO: Just import these and update them with anything new
 CMAP_PROPERTIES = set(['cmap_mode', 'cmap_att', 'cmap_vmin', 'cmap_vmax', 'cmap'])
 MARKER_PROPERTIES = set(['size_mode', 'size_att', 'size_vmin', 'size_vmax', 'size_scaling', 'size', 'fill'])
 LINE_PROPERTIES = set(['linewidth', 'linestyle'])
@@ -32,36 +32,20 @@ DATA_PROPERTIES = set(['layer', 'x_att', 'y_att', 'cmap_mode', 'size_mode', 'den
 
 class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
     """
-    EACH axes in our list of axes is a ScatterLayerArtist
-    with a different dataset, but all the same state variables.
-
-    But this isn't quite right, because we probably want
-    the scatter_layer_artists and such in a state object
     """
     
     _layer_state_cls = SmallMultiplesLayerState
 
     def __init__(self, axes, viewer_state, layer_state=None, layer=None):
-        #ipdb.set_trace()
-        
-        print("Start __init__ for a SmallMultiplesLayerArtist")
         super().__init__(axes, viewer_state, layer_state=layer_state, layer=layer)
         self.scatter_layer_artists = []
         self.scatter_layer_artists_syncs = []
         self.axes_subplots = None
-        #self.state._set_axes(axes)
-        #self._set_axes()
-        print("Setting up callbacks SmallMultiplesLayerArtist")
 
         self._viewer_state.add_global_callback(self._update_scatter)
         self.state.add_global_callback(self._update_scatter)
 
-        print("__init__ for SmallMultiplesLayerArtist is done")
-        #self._set_axes(axes)
-
     def _set_axes(self):
-        print("Calling _set_axes")
-        #ipdb.set_trace()
         if self._viewer_state.axes_subplots is not None:
             self.axes_subplots = self._viewer_state.axes_subplots
 
@@ -80,15 +64,7 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
         if len(flat_axes) != len(flat_facet_masks):
             print("#### MISMATCH BETWEEN axes and facets ####")
             return 
-        #for layer in self._viewer_state.layers:
-        #    if type(layer) is FacetScatterLayerState:
-        #        print(f"Removing {layer.title}...")
-        #        self._viewer_state.layers.remove(layer)
 
-        print(f"{len(flat_axes)=}")
-        print(f"{len(flat_facet_masks)=}")
-        print(f"{len(flat_facet_subsets)=}")
-        #ipdb.set_trace()
         for ax, facet_mask, facet_subset in zip(flat_axes, flat_facet_masks, 
                                                 flat_facet_subsets):
             #print("Creating a FacetScatterLayerArtist with {ax=}, ")
@@ -112,7 +88,6 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
             return
 
         changed = set() if force else self.pop_changed_properties()
-        print(f">>>> calling SmallMultiplesLayerArtist _update_scatter with {changed}...")
         if force or any(prop in changed for prop in ('col_facet_att','row_facet_att','num_rows','num_cols')):
             self._set_axes()
 
@@ -137,13 +112,9 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
     
     def __init__(self, axes, viewer_state, layer_state=None, layer=None, 
                  facet_mask=None, facet_subset=None, scatter_state=None):
-        print("In __init__ for FacetScatterLayerArtist")
-        #import ipdb; ipdb.set_trace()
         self.density_artist = None # Hack to avoid an AttributeError because density_artist does
                                    # not get fully initialized before a callback fires
-        #print(f"At start of __init__, {len(viewer_state.layers)=}")
         super().__init__(axes, viewer_state, layer_state=layer_state, layer=layer)
-        #print(f"After super of __init__, {len(viewer_state.layers)=}")
 
         self.state.facet_mask = facet_mask
         self.state.facet_subset = facet_subset
@@ -163,8 +134,6 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
 
         changed = set() if force else self.pop_changed_properties()
 
-        print(f">>>> calling FacetScatterLayerArtist _update_scatter with {changed}...")
-
         if force or len(changed & DATA_PROPERTIES) > 0:
             self._update_data()
             force = True
@@ -178,20 +147,9 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
     def _update_data(self):
         if len(self.mpl_artists) == 0:
             return
-        print(f"Calling **_update_data** with {self.state.title}")
-
         try:
             if not self.state.density_map:
-                #print("Calculating x...")
-                if isinstance(self.layer, Subset): 
-                    #import pdb; pdb.set_trace()
-                    # Okay... the FIRST time this gets called, self.layer.to_mask() is all false.
-                    # We need to delay the call, or call again once this is properly updated
-                    # Like... the GroupedSubset triggers something on creation, but before the ROI
-                    # gets updated to actually put the data in?
-                    # It seems like self.layer.subset_state is just not set throughout
-                    # this entire process
-                    
+                if isinstance(self.layer, Subset):                     
                     # TODO: This is not a very efficient way to do this calculation, if that matters
                     # There are a fair number of calls here with empty subsets, and maybe
                     # we could short-circuit some of them
@@ -199,8 +157,6 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
                     subset = Subset(self.layer.data,label=f"temp") 
                     subset.subset_state = xsubset_state
                     masked_x = ensure_numerical(subset[self._viewer_state.x_att].ravel())
-                    print(f"{masked_x=}")
-
                 else:
                     x = ensure_numerical(self.layer[self._viewer_state.x_att].ravel())
                     masked_x = np.ma.masked_where(self.facet_mask, x)
