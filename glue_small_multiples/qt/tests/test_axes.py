@@ -15,7 +15,7 @@ from glue.utils.qt import process_events
 from glue.core.state import GlueUnSerializer
 from glue.utils.qt import process_events
 
-from ..viewer import SmallMultiplesViewer
+from glue_small_multiples.qt.viewer import SmallMultiplesViewer
 
 DATA = os.path.join(os.path.dirname(__file__), 'data')
 NUM_ADELIE = 152

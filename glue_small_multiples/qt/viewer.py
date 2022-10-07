@@ -14,21 +14,22 @@ from glue.viewers.scatter.viewer import MatplotlibScatterMixin
 from glue.core.util import update_ticks
 from glue.viewers.common.viewer import get_layer_artist_from_registry
 
-from ..utils import PanTrackerMixin
-from ..layer_artist import SmallMultiplesLayerArtist
-from ..state import SmallMultiplesViewerState
-from .layer_style_editor import SmallMultiplesLayerStyleEditor
-from .options_widget import SmallMultiplesOptionsWidget
+from glue_small_multiples.utils import PanTrackerMixin
+from glue_small_multiples.layer_artist import SmallMultiplesLayerArtist
+from glue_small_multiples.state import SmallMultiplesViewerState
+from glue_small_multiples.qt.layer_style_editor import SmallMultiplesLayerStyleEditor
+from glue_small_multiples.qt.options_widget import SmallMultiplesOptionsWidget
 
-__all__ = ['FacetRectangleMode','SmallMultiplesViewer']
+__all__ = ['MultiplePossibleRoiModeBase', 'MultiplePossibleRoiMode', 
+            'FacetRectangleMode', 'SmallMultiplesViewer']
 
 
 class MultiplePossibleRoiModeBase(ToolbarModeBase):
     """
     Base class for defining ROIs. ROIs accessible via the roi() method
-    
+
     See RoiMode and ClickRoiMode subclasses for interaction details
-    
+
     An roi_callback function can be provided. When ROIs are finalized (i.e.
     fully defined), this function will be called with the RoiMode object as the
     argument. Clients can use RoiMode.roi() to retrieve the new ROI, and take
@@ -102,6 +103,7 @@ class MultiplePossibleRoiModeBase(ToolbarModeBase):
         for _roi_tool in self._roi_tools:
             _roi_tool.reset()
 
+
 class MultiplePossibleRoiMode(MultiplePossibleRoiModeBase):
     """
     Define Roi Modes via click+drag events.
@@ -111,34 +113,34 @@ class MultiplePossibleRoiMode(MultiplePossibleRoiModeBase):
     """
 
     status_tip = "CLICK and DRAG to define selection, CTRL-CLICK and DRAG to move selection"
-    
+
     def __init__(self, viewer, **kwargs):
 
         super(MultiplePossibleRoiMode, self).__init__(viewer, **kwargs)
-    
+
         self._start_event = None
         self._drag = False
-    
+
     def _update_drag(self, event):
 
         if self._drag or self._start_event is None:
             return
-    
+
         dx = abs(event.x - self._start_event.x)
         dy = abs(event.y - self._start_event.y)
-    
+
         status = self._roi_tool.start_selection(self._start_event)
-    
+
         # If start_selection returns False, the selection has not been
         # started and we should abort, so we set self._drag to False in
         # this case.
         self._drag = True if status is None else status
-    
+
     def press(self, event):
 
         self._start_event = event
         super(MultiplePossibleRoiMode, self).press(event)
-    
+
     def move(self, event):
         i = 0
         for axes,_roi_tool in zip(self._axes_array.flatten(),self._roi_tools):
@@ -152,7 +154,7 @@ class MultiplePossibleRoiMode(MultiplePossibleRoiModeBase):
         if self._drag:
             self._roi_tool.update_selection(event)
         super(MultiplePossibleRoiMode, self).move(event)
-    
+
     def release(self, event):
 
         if self._drag:
@@ -160,7 +162,7 @@ class MultiplePossibleRoiMode(MultiplePossibleRoiModeBase):
         self._drag = False
         self._start_event = None
         super(MultiplePossibleRoiMode, self).release(event)
-    
+
     def key(self, event):
 
         if event.key == 'escape':
@@ -217,7 +219,6 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
     tools = ['select:facetrectangle']
 
     def __init__(self, session, parent=None, state=None):
-        #import ipdb; ipdb.set_trace()
         proj = None if not state or not state.plot_mode else state.plot_mode
         MatplotlibDataViewer.__init__(self, session, parent=parent, state=state, projection=proj)
         if self.axes is not None and self.figure is not None:
@@ -225,20 +226,16 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
         self.axes_array = self.figure.subplots(self.state.num_rows, self.state.num_cols,
                                                sharex=True, sharey=True, squeeze=False)
         self.axes = self.axes_array[0][0]
-        
-        
-        #self.state._update_num_rows_cols()
+
         MatplotlibScatterMixin.setup_callbacks(self)
 
         self.state.add_callback('num_cols', self._configure_axes_array, priority=9999)
         self.state.add_callback('num_rows', self._configure_axes_array, priority=9999)
         if state is not None:
             self.state._set_axes_subplots(axes_subplots=self.axes_array)
-            #self.state.update_from_state(state) # We probably do not need this
             self.state._update_num_rows_cols() # This sets our data_facets
-            self._configure_axes_array(force=True) # This will probably return immediately anyway because the axes are the right shape. But maybe we need to call the rest?
-        #self.init_pan_tracking(self.axes)
-    
+            self._configure_axes_array(force=True)
+
     def _configure_axes_array(self, force=False, *args):
 
         with delay_callback(self.state, 'num_cols','num_cols'):
