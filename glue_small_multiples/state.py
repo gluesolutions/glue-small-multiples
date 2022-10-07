@@ -7,7 +7,7 @@ from glue.viewers.matplotlib.state import (MatplotlibDataViewerState,
                                            DeferredDrawCallbackProperty as DDCProperty,
                                            DeferredDrawSelectionCallbackProperty as DDSCProperty)
 from glue.core.state_objects import StateAttributeLimitsHelper
-
+from glue.config import session_patch
 from glue.viewers.scatter.state import ScatterLayerState
 from glue.core.data_combo_helper import ManualDataComboHelper, ComponentIDComboHelper, ComboHelper
 from glue.core.subset import Subset
@@ -59,6 +59,8 @@ class SmallMultiplesViewerState(ScatterViewerState):
         super().__init__()
         self.data_facet_masks = [] # We can only initialize this if we have a dataset defined
         self.data_facet_subsets = []
+        self.temp_num_cols = 0
+        self.temp_num_rows = 0
         self.ref_data_helper = ManualDataComboHelper(self, 'reference_data')
         self.col_facet_att_helper = ComponentIDComboHelper(self, 'col_facet_att', categorical=True, numeric=False)
         self.row_facet_att_helper = ComponentIDComboHelper(self, 'row_facet_att', categorical=True, numeric=False, none=True)
@@ -91,7 +93,7 @@ class SmallMultiplesViewerState(ScatterViewerState):
             self.temp_num_rows = min(self.max_num_rows, len(self.reference_data[self.row_facet_att].categories))
         else:
             self.temp_num_rows = 1
-        
+
         self._facets_changed()
         if (self.num_cols != self.temp_num_cols) or (self.num_rows != self.temp_num_rows):
             self.num_cols = self.temp_num_cols
@@ -228,6 +230,16 @@ class FacetScatterLayerState(ScatterLayerState):
                                             log=(self.viewer_state.y_log, self.viewer_state.x_log),
                                             range=range)
             return total / count
+
+
+@session_patch(priority=0)
+def strip_out_facet_subset_states(rec):
+    for key, value in rec.items():
+        if 'CallbackList' in key:
+            layers = value.get('values',[])
+            if layers:
+                value['values'] = [x for x in layers if "FacetScatterLayer" not in x]
+    rec = dict((k,v) for k, v in rec.items() if "FacetScatterLayer" not in k)
 
 
 class SmallMultiplesLayerState(ScatterLayerState):

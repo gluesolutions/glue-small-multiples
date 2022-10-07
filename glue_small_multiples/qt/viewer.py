@@ -46,7 +46,6 @@ class MultiplePossibleRoiModeBase(ToolbarModeBase):
             Function that will be called when the ROI is finished being
             defined.
         """
-        print("Calling RoiBaseMode __init__...")
 
         def apply_mode(mode):
             self.viewer.apply_roi(self.roi(), self._col_axis_num, self._row_axis_num)
@@ -62,7 +61,6 @@ class MultiplePossibleRoiModeBase(ToolbarModeBase):
         super(MultiplePossibleRoiModeBase, self).close()
 
     def activate(self):
-        print("Calling RoiBaseMode activate...")
         # For persistent ROIs, the user might e.g. pan and zoom around before
         # the selection is finalized. The Matplotlib ROIs cache the image
         # background to make things more efficient, but if the user pans/zooms
@@ -85,14 +83,12 @@ class MultiplePossibleRoiModeBase(ToolbarModeBase):
         -------
         list of roi : :class:`~glue.core.roi.Roi`
         """
-        print("Calling RoiBaseMode roi...")
         return self._roi_tool.roi()
 
     def _finish_roi(self, event):
         """
         Called by subclasses when ROI is fully defined
         """
-        print("Calling RoiBaseMode _finish_roi...")
 
         if not self.persistent:
             self._roi_tool.finalize_selection(event)
@@ -102,7 +98,6 @@ class MultiplePossibleRoiModeBase(ToolbarModeBase):
             self.viewer.toolbar.active_tool = None
 
     def clear(self):
-        print("Calling RoiBaseMode clear...")
 
         for _roi_tool in self._roi_tools:
             _roi_tool.reset()
@@ -118,7 +113,6 @@ class MultiplePossibleRoiMode(MultiplePossibleRoiModeBase):
     status_tip = "CLICK and DRAG to define selection, CTRL-CLICK and DRAG to move selection"
     
     def __init__(self, viewer, **kwargs):
-        print("Calling MultiplePossibleRoiMode __init__...")
 
         super(MultiplePossibleRoiMode, self).__init__(viewer, **kwargs)
     
@@ -126,7 +120,6 @@ class MultiplePossibleRoiMode(MultiplePossibleRoiModeBase):
         self._drag = False
     
     def _update_drag(self, event):
-        print("Calling MultiplePossibleRoiMode _update_drag...")
 
         if self._drag or self._start_event is None:
             return
@@ -142,14 +135,11 @@ class MultiplePossibleRoiMode(MultiplePossibleRoiModeBase):
         self._drag = True if status is None else status
     
     def press(self, event):
-        print("Calling MultiplePossibleRoiMode press...")
 
         self._start_event = event
         super(MultiplePossibleRoiMode, self).press(event)
     
     def move(self, event):
-        print("Calling MultiplePossibleRoiMode move...")
-        #print(f"{event=}")
         i = 0
         for axes,_roi_tool in zip(self._axes_array.flatten(),self._roi_tools):
             if event.inaxes == axes:
@@ -157,9 +147,6 @@ class MultiplePossibleRoiMode(MultiplePossibleRoiModeBase):
                 self._col_axis_num, self._row_axis_num = np.unravel_index(i,self._axes_array.shape)
                 break
             i+=1
-        print(f"{self._roi_tool=}")
-        print(f"{self._col_axis_num=}")
-        print(f"{self._row_axis_num=}")
 
         self._update_drag(event)
         if self._drag:
@@ -167,7 +154,6 @@ class MultiplePossibleRoiMode(MultiplePossibleRoiModeBase):
         super(MultiplePossibleRoiMode, self).move(event)
     
     def release(self, event):
-        print("Calling MultiplePossibleRoiMode release...")
 
         if self._drag:
             self._finish_roi(event)
@@ -176,7 +162,6 @@ class MultiplePossibleRoiMode(MultiplePossibleRoiModeBase):
         super(MultiplePossibleRoiMode, self).release(event)
     
     def key(self, event):
-        print("Calling MultiplePossibleRoiMode key...")
 
         if event.key == 'escape':
             for _roi_tool in self._roi_tools:
@@ -232,6 +217,7 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
     tools = ['select:facetrectangle']
 
     def __init__(self, session, parent=None, state=None):
+        #import ipdb; ipdb.set_trace()
         proj = None if not state or not state.plot_mode else state.plot_mode
         MatplotlibDataViewer.__init__(self, session, parent=parent, state=state, projection=proj)
         if self.axes is not None and self.figure is not None:
@@ -239,15 +225,21 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
         self.axes_array = self.figure.subplots(self.state.num_rows, self.state.num_cols,
                                                sharex=True, sharey=True, squeeze=False)
         self.axes = self.axes_array[0][0]
-
+        
+        
+        #self.state._update_num_rows_cols()
         MatplotlibScatterMixin.setup_callbacks(self)
 
         self.state.add_callback('num_cols', self._configure_axes_array, priority=9999)
         self.state.add_callback('num_rows', self._configure_axes_array, priority=9999)
-
+        if state is not None:
+            self.state._set_axes_subplots(axes_subplots=self.axes_array)
+            #self.state.update_from_state(state) # We probably do not need this
+            self.state._update_num_rows_cols() # This sets our data_facets
+            self._configure_axes_array(force=True) # This will probably return immediately anyway because the axes are the right shape. But maybe we need to call the rest?
         #self.init_pan_tracking(self.axes)
     
-    def _configure_axes_array(self, *args):
+    def _configure_axes_array(self, force=False, *args):
 
         with delay_callback(self.state, 'num_cols','num_cols'):
             """
@@ -255,7 +247,7 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
             in scatter._update_projection
             """
             # If the axes are the right shape we should just return
-            if self.axes_array.shape == (self.state.num_rows, self.state.num_cols):
+            if (self.axes_array.shape == (self.state.num_rows, self.state.num_cols)) and not force:
                 return
 
             for ax in self.figure.axes:
@@ -292,7 +284,6 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
         return cls(self.axes_array, self.state, layer=layer, layer_state=layer_state)
 
     def apply_roi(self, roi, col_axis_num=0, row_axis_num=0, override_mode=None):
-        #print(self.state.data_facet_subsets)
         self.redraw()
         
         if len(self.layers) == 0:

@@ -46,8 +46,13 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
         self.state.add_global_callback(self._update_scatter)
 
     def _set_axes(self):
+
+        #import ipdb; ipdb.set_trace()
         if self._viewer_state.axes_subplots is not None:
             self.axes_subplots = self._viewer_state.axes_subplots
+
+        if self.axes_subplots is None:
+            return
 
         for sla in self.scatter_layer_artists:
             self._viewer_state.layers.remove(sla.state)
@@ -62,17 +67,15 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
         flat_facet_masks = [item for sublist in self._viewer_state.data_facet_masks for item in sublist]
         flat_facet_subsets = [item for sublist in self._viewer_state.data_facet_subsets for item in sublist]
         if len(flat_axes) != len(flat_facet_masks):
-            print("#### MISMATCH BETWEEN axes and facets ####")
             return 
 
         for ax, facet_mask, facet_subset in zip(flat_axes, flat_facet_masks, 
                                                 flat_facet_subsets):
-            #print("Creating a FacetScatterLayerArtist with {ax=}, ")
             sla = FacetScatterLayerArtist(ax, self._viewer_state, layer=self.layer, 
                                           facet_mask=facet_mask, facet_subset=facet_subset, 
                                           scatter_state = self.state)
             self.scatter_layer_artists.append(sla)
-            for visual_property in (CMAP_PROPERTIES | MARKER_PROPERTIES | LINE_PROPERTIES):
+            for visual_property in (CMAP_PROPERTIES | MARKER_PROPERTIES | LINE_PROPERTIES | set(['color', 'alpha', 'zorder', 'visible'])):
                 sla_sync = keep_in_sync(self.state, visual_property, sla.state, visual_property)
                 self.scatter_layer_artists_syncs.append(sla_sync)
             sla._update_scatter(force=True)
@@ -97,6 +100,25 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
         for sla in self.scatter_layer_artists:
             sla.update()
         self.redraw()
+
+    def remove(self):
+        # Clean up the density artist to avoid circular references to do a
+        # reference to the self.histogram2d method in density artist.
+        self.density_artist = None
+        for sla in self.scatter_layer_artists:
+            self._viewer_state.layers.remove(sla.state)
+            sla.clear()
+            sla.remove()
+        self.scatter_layer_artists = []
+        self.scatter_layer_artists_syncs = []
+        super(SmallMultiplesLayerArtist, self).remove()
+
+    def clear(self):
+
+        for sla in self.scatter_layer_artists:
+            sla.clear()
+        super(SmallMultiplesLayerArtist, self).remove()
+
 
     def redraw(self):
         pass # There is nothing to actually draw for this artist
@@ -139,7 +161,6 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
             force = True
 
         if force or len(changed & VISUAL_PROPERTIES) > 0:
-            #print("Visual Attributes Changes...")
             self._update_visual_attributes(changed, force=force)
 
 
@@ -149,7 +170,7 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
             return
         try:
             if not self.state.density_map:
-                if isinstance(self.layer, Subset):                     
+                if isinstance(self.layer, Subset):
                     # TODO: This is not a very efficient way to do this calculation, if that matters
                     # There are a fair number of calls here with empty subsets, and maybe
                     # we could short-circuit some of them
@@ -341,4 +362,3 @@ class FacetScatterLayerArtist(ScatterLayerArtist):
         else:
             self.enable()
         return density_map
-
