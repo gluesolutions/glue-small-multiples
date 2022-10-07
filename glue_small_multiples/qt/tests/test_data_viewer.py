@@ -138,8 +138,9 @@ class TestSmallMultiplesViewer(object):
         #yo.redraw()
         
         x,y = yo.plot_artist.get_data()
-        unmasked_x = x[x.mask == False]
-        assert len(unmasked_x) > 14
+        #import ipdb; ipdb.set_trace()
+        #unmasked_x = x[x.mask == False]
+        assert len(x) == 14
         
 
     def test_session_save_and_restore(self, tmpdir):
@@ -169,8 +170,8 @@ class TestSmallMultiplesViewer(object):
         assert self.viewer.layers[0].scatter_layer_artists[0].state.size_mode == layer_state.size_mode
         assert len(self.viewer.layers) == 1
         assert len(self.viewer.layers[0].scatter_layer_artists) == 3
-        assert viewer_state.data_facet_masks[0].count() == NUM_ADELIE
-        assert viewer_state.data_facet_masks[1].count() == NUM_CHINSTRAP
-        assert viewer_state.data_facet_masks[2].count() == NUM_GENTOO
+        assert np.sum(~viewer_state.data_facet_masks[0][0]) == NUM_ADELIE
+        assert np.sum(~viewer_state.data_facet_masks[0][1]) == NUM_CHINSTRAP
+        assert np.sum(~viewer_state.data_facet_masks[0][2]) == NUM_GENTOO
 
         ga.close()

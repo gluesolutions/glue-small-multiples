@@ -10,8 +10,8 @@ from glue.viewers.scatter.layer_artist import ScatterLayerArtist
 from glue.viewers.scatter.state import ScatterLayerState
 from glue.viewers.scatter.layer_artist import set_mpl_artist_cmap
 
-from .utils import PanTrackerMixin
-from .state import SmallMultiplesLayerState, FacetScatterLayerState
+from glue_small_multiples.utils import PanTrackerMixin
+from glue_small_multiples.state import SmallMultiplesLayerState, FacetScatterLayerState
 
 __all__ = ['SmallMultiplesLayerArtist', 'FacetScatterLayerArtist']
 

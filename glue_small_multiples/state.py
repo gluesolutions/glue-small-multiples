@@ -188,11 +188,15 @@ class SmallMultiplesViewerState(ScatterViewerState):
 
 
 class FacetScatterLayerState(ScatterLayerState):
+    """A simple superclass for the Facet subsets
+    to add titles on the axes and custom density
+    map logic.
+    """
     def __init__(self, viewer_state=None, layer=None, **kwargs):
         super().__init__(viewer_state=viewer_state, layer=layer)
 
     def _update_title(self):
-        # TODO: title should be a callback property?    
+        # TODO: title should be a callback property?
         try:
             self.title = self.facet_subset.label
         except AttributeError: #This is for an AndState
@@ -234,6 +238,14 @@ class FacetScatterLayerState(ScatterLayerState):
 
 @session_patch(priority=0)
 def strip_out_facet_subset_states(rec):
+    """ We regenerate FacetScatterLayerState objects
+    from the other state objects so we remove them
+    from the session file.
+
+    TODO: Write custom save/restore functions for
+    FacetScatterLayerState objects so we don't have
+    to patch the session file.
+    """
     for key, value in rec.items():
         if 'CallbackList' in key:
             layers = value.get('values',[])
@@ -244,8 +256,7 @@ def strip_out_facet_subset_states(rec):
 
 class SmallMultiplesLayerState(ScatterLayerState):
     """
-    This is probably just a ScatterLayerState?
+    Currently this is the same as ScatterLayerState
     """
     def __init__(self, viewer_state=None, layer=None, **kwargs):
         super().__init__(viewer_state=viewer_state, layer=layer)
-

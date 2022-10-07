@@ -10,7 +10,7 @@ from glue.core.roi import RectangularROI
 
 from numpy.testing import assert_allclose, assert_equal
 
-from ..viewer import SmallMultiplesViewer
+from glue_small_multiples.qt.viewer import SmallMultiplesViewer
 
 class TestSmallMultiplesViewer(object):
 
