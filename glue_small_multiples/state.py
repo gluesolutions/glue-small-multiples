@@ -69,7 +69,7 @@ class SmallMultiplesViewerState(ScatterViewerState):
         self.add_callback('col_facet_att', self._update_num_rows_cols, priority=10000)
         self.add_callback('row_facet_att', self._update_num_rows_cols, priority=10000)
         self.add_callback('reference_data', self._update_num_rows_cols, priority=10000)
-        self.add_callback('max_num_cols', self._update_num_rows_cols, priority=10000)
+        self.add_callback('max_num_cols', self._update_num_rows_cols, priority=10000) #This should be linked to a QSpinBox to force integers
         self.add_callback('max_num_rows', self._update_num_rows_cols, priority=10000)
 
         self._facets_changed()
@@ -86,11 +86,11 @@ class SmallMultiplesViewerState(ScatterViewerState):
             return
 
         if self.col_facet_att is not None:
-            self.temp_num_cols = min(self.max_num_cols, len(self.reference_data[self.col_facet_att].categories))
+            self.temp_num_cols = min(int(self.max_num_cols), len(self.reference_data[self.col_facet_att].categories))
         else:
             self.temp_num_cols = 1
         if self.row_facet_att is not None:
-            self.temp_num_rows = min(self.max_num_rows, len(self.reference_data[self.row_facet_att].categories))
+            self.temp_num_rows = min(int(self.max_num_rows), len(self.reference_data[self.row_facet_att].categories))
         else:
             self.temp_num_rows = 1
 

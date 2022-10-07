@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>330</width>
-    <height>237</height>
+    <width>334</width>
+    <height>256</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -35,7 +35,7 @@
       <enum>QTabWidget::North</enum>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <property name="usesScrollButtons">
       <bool>false</bool>
@@ -211,7 +211,7 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="2">
+       <item row="0" column="1" colspan="2">
         <widget class="QLineEdit" name="valuetext_x_min"/>
        </item>
        <item row="0" column="3">
@@ -237,17 +237,7 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="1" rowspan="2" colspan="2">
-        <widget class="QPushButton" name="button_full_circle">
-         <property name="enabled">
-          <bool>true</bool>
-         </property>
-         <property name="text">
-          <string>full circle</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0" rowspan="2">
+       <item row="1" column="0">
         <widget class="QLabel" name="y_lab_2">
          <property name="font">
           <font>
@@ -263,13 +253,13 @@
          </property>
         </widget>
        </item>
-       <item row="2" column="2" rowspan="2">
+       <item row="1" column="1" rowspan="2" colspan="2">
         <widget class="QLineEdit" name="valuetext_y_min"/>
        </item>
-       <item row="2" column="4" rowspan="2">
+       <item row="1" column="4" rowspan="2">
         <widget class="QLineEdit" name="valuetext_y_max"/>
        </item>
-       <item row="2" column="5" rowspan="2">
+       <item row="1" column="5" rowspan="2">
         <widget class="QToolButton" name="bool_y_log">
          <property name="text">
           <string>log</string>
@@ -279,7 +269,7 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="3">
+       <item row="2" column="3">
         <widget class="QToolButton" name="button_flip_y">
          <property name="styleSheet">
           <string notr="true">padding: 0px</string>
@@ -289,7 +279,7 @@
          </property>
         </widget>
        </item>
-       <item row="4" column="0" colspan="3">
+       <item row="3" column="0" colspan="2">
         <widget class="QLabel" name="type_lab_3">
          <property name="font">
           <font>
@@ -302,7 +292,20 @@
          </property>
         </widget>
        </item>
-       <item row="5" column="2">
+       <item row="4" column="0">
+        <widget class="QLabel" name="type_lab_4">
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>max rows</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1" colspan="2">
         <spacer name="horizontalSpacer_2">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
@@ -327,6 +330,12 @@
           </size>
          </property>
         </spacer>
+       </item>
+       <item row="3" column="4">
+        <widget class="QLineEdit" name="valuetext_max_num_cols"/>
+       </item>
+       <item row="4" column="4">
+        <widget class="QLineEdit" name="valuetext_max_num_rows"/>
        </item>
       </layout>
      </widget>

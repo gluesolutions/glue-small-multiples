@@ -21,13 +21,6 @@ NUM_ADELIE = 152
 NUM_CHINSTRAP = 68
 NUM_GENTOO = 124
 
-"""
-Next steps:
-
-Make subset creation work on other axes
-Figure out why subsets do not display on the third/final? facet plot
-
-"""
 
 CMAP_PROPERTIES = set(['cmap_mode', 'cmap_att', 'cmap_vmin', 'cmap_vmax', 'cmap'])
 MARKER_PROPERTIES = set(['size_mode', 'size_att', 'size_vmin', 'size_vmax', 'size_scaling', 'size', 'fill'])
