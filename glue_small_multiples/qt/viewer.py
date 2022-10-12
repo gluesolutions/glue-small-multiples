@@ -235,6 +235,8 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
             self.state._set_axes_subplots(axes_subplots=self.axes_array)
             self.state._update_num_rows_cols() # This sets our data_facets
             self._configure_axes_array(force=True)
+            self.remove_all_toolbars()
+
 
     def _configure_axes_array(self, force=False, *args):
 
@@ -254,9 +256,9 @@ class SmallMultiplesViewer(MatplotlibScatterMixin, MatplotlibDataViewer, PanTrac
             self.axes_array = self.figure.subplots(self.state.num_rows, self.state.num_cols, 
                                                    sharex=True, sharey=True, squeeze=False)
             self.axes = self.axes_array[0][0]
-            if not force:
-                self.remove_all_toolbars()
-                self.initialize_toolbar()
+            #if not force:
+            self.remove_all_toolbars()
+            self.initialize_toolbar()
             self.state._set_axes_subplots(axes_subplots=self.axes_array)
             self.axes.callbacks.connect('xlim_changed', self.limits_from_mpl)
             self.axes.callbacks.connect('ylim_changed', self.limits_from_mpl)

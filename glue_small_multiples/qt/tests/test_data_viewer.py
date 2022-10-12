@@ -143,6 +143,7 @@ class TestSmallMultiplesViewer(object):
         viewer_state.x_att = self.penguin_data.id['bill_length_mm']
         viewer_state.y_att = self.penguin_data.id['bill_depth_mm']
         viewer_state.col_facet_att = self.penguin_data.id['species']
+        assert len(self.viewer._toolbars) == 1
         process_events()
         filename = tmpdir.join('test_multi_session.glu').strpath
 
@@ -156,15 +157,15 @@ class TestSmallMultiplesViewer(object):
         ga = state.object('__main__')
 
         dc = ga.session.data_collection
-
+        import ipdb; ipdb.set_trace()
         viewer = ga.viewers[0][0]
         assert viewer.state.x_att is dc[0].id['bill_length_mm']
         assert viewer.state.col_facet_att is dc[0].id['species']
-        assert self.viewer.layers[0].scatter_layer_artists[0].state.size_mode == layer_state.size_mode
-        assert len(self.viewer.layers) == 1
-        assert len(self.viewer.layers[0].scatter_layer_artists) == 3
+        assert viewer.layers[0].scatter_layer_artists[0].state.size_mode == layer_state.size_mode
+        assert len(viewer.layers) == 1
+        assert len(viewer.layers[0].scatter_layer_artists) == 3
         assert np.sum(~viewer_state.data_facet_masks[0][0]) == NUM_ADELIE
         assert np.sum(~viewer_state.data_facet_masks[0][1]) == NUM_CHINSTRAP
         assert np.sum(~viewer_state.data_facet_masks[0][2]) == NUM_GENTOO
-
+        assert len(viewer._toolbars) == 1
         ga.close()
