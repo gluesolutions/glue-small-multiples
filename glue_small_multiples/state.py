@@ -22,7 +22,7 @@ class FacetSubset(Subset):
     getting the extra disambiguation stuff.
     """
     def __init__(self, data, color=None, alpha=0.5, label=None):
-        super().__init__(data, color, alpha, label)
+        super().__init__(data, color=color, alpha=alpha, label=label)
 
     @property
     def label(self):
