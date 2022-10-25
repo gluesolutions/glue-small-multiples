@@ -78,6 +78,7 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
             for visual_property in (CMAP_PROPERTIES | MARKER_PROPERTIES | LINE_PROPERTIES | set(['color', 'alpha', 'zorder', 'visible'])):
                 sla_sync = keep_in_sync(self.state, visual_property, sla.state, visual_property)
                 self.scatter_layer_artists_syncs.append(sla_sync)
+
             sla._update_scatter(force=True)
 
     @defer_draw
@@ -98,6 +99,7 @@ class SmallMultiplesLayerArtist(MatplotlibLayerArtist, PanTrackerMixin):
     def update(self):
         self._update_scatter()
         for sla in self.scatter_layer_artists:
+            sla.state.zorder = self.state.zorder # zorder gets updated with ignore_callbacks -- force sync here
             sla.update()
         self.redraw()
 
