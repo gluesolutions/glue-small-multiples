@@ -194,6 +194,7 @@ class FacetScatterLayerState(ScatterLayerState):
     """
     def __init__(self, viewer_state=None, layer=None, **kwargs):
         super().__init__(viewer_state=viewer_state, layer=layer)
+            #self.update_from_dict(kwargs)
 
     def _update_title(self):
         # TODO: title should be a callback property?
@@ -259,4 +260,4 @@ class SmallMultiplesLayerState(ScatterLayerState):
     Currently this is the same as ScatterLayerState
     """
     def __init__(self, viewer_state=None, layer=None, **kwargs):
-        super().__init__(viewer_state=viewer_state, layer=layer)
+        super().__init__(viewer_state=viewer_state, layer=layer, **kwargs)

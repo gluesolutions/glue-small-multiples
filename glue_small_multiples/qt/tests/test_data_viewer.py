@@ -149,6 +149,8 @@ class TestSmallMultiplesViewer(object):
         viewer_state.x_att = self.penguin_data.id['bill_length_mm']
         viewer_state.y_att = self.penguin_data.id['bill_depth_mm']
         viewer_state.col_facet_att = self.penguin_data.id['species']
+        layer_state.cmap_mode = 'Linear'
+        layer_state.cmap_att = self.penguin_data.id['bill_length_mm']
         assert len(self.viewer._toolbars) == 1
         process_events()
         filename = tmpdir.join('test_multi_session.glu').strpath
@@ -159,7 +161,6 @@ class TestSmallMultiplesViewer(object):
             session = f.read()
 
         state = GlueUnSerializer.loads(session)
-
         ga = state.object('__main__')
 
         dc = ga.session.data_collection
@@ -173,4 +174,5 @@ class TestSmallMultiplesViewer(object):
         assert np.sum(~viewer_state.data_facet_masks[0][1]) == NUM_CHINSTRAP
         assert np.sum(~viewer_state.data_facet_masks[0][2]) == NUM_GENTOO
         assert len(viewer._toolbars) == 1
+        assert viewer.layers[0].state.cmap_mode == layer_state.cmap_mode
         ga.close()
