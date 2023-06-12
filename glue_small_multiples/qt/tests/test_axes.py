@@ -40,7 +40,7 @@ class TestSmallMultiplesViewer(object):
         yo = self.viewer.layers[0].scatter_layer_artists[0]
 
         x, y = yo.plot_artist.get_data()
-        unmasked_x = x[x.mask is False]
+        unmasked_x = x[~x.mask]
         assert len(unmasked_x) > 10
 
         viewer_state.x_att = self.penguin_data.id["bill_length_mm"]
@@ -49,7 +49,7 @@ class TestSmallMultiplesViewer(object):
         yo = self.viewer.layers[0].scatter_layer_artists[1]
 
         x, y = yo.plot_artist.get_data()
-        unmasked_x = x[x.mask is False]
+        unmasked_x = x[~x.mask]
         assert len(unmasked_x) > 10
 
         viewer_state.row_facet_att = self.penguin_data.id["island"]
