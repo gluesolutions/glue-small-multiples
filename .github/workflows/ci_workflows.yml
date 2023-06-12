@@ -55,4 +55,4 @@ jobs:
       test_extras: 'test,qt,glue'
       test_command: Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 & sleep 3; DISPLAY=:99.0 pytest --pyargs glue_small_multiples
     secrets:
-      pypi_token: ${{ secrets.pypi_token }}s
+      pypi_token: ${{ secrets.pypi_api_token }}
