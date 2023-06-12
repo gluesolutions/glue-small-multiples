@@ -1,0 +1,59 @@
+name: CI Workflows
+
+on:
+  push:
+    branches:
+    - main
+    tags:
+    - '*'
+  pull_request:
+
+jobs:
+  initial_checks:
+    # Mandatory checks before CI tests
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
+    with:
+      coverage: false
+      envs: |
+        # Code style
+        - linux: codestyle
+
+  tests:
+    needs: initial_checks
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
+    with:
+      display: true
+      coverage: codecov
+      # Linux PyQt 5.15 and 6.x installations require apt-getting xcb and EGL deps
+      # and headless X11 display
+      libraries: |
+        apt:
+          - '^libxcb.*-dev'
+          - libxkbcommon-x11-dev
+          - libegl1-mesa
+
+      envs: |
+        # Standard tests
+        - linux: py38-test
+        - linux: py39-test
+        - linux: py310-test-pyqt6
+        - linux: py311-test-dev-pyqt6
+
+        - macos: py38-test
+        - macos: py39-test-dev
+        - macos: py310-test-pyqt6
+
+        - windows: py38-test
+        - windows: py39-test-dev
+        - windows: py310-test-pyqt6
+
+  publish:
+    needs: tests
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/publish_pure_python.yml@v1
+    with:
+      # Setup PyQt5 deps and headless X server as per pyvista/setup-headless-display-action@v1
+      libraries: '^libxcb.*-dev libxkbcommon-x11-dev xvfb'
+      test_extras: 'test,qt'
+      test_command: Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 & sleep 3; DISPLAY=:99.0 pytest --pyargs glue_vispy_viewers
+    secrets:
+      pypi_token: ${{ secrets.pypi_token }}s
