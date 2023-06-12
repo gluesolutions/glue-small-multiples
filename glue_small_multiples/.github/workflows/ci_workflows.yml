@@ -4,9 +4,13 @@ on:
   push:
     branches:
     - main
+    - dev
     tags:
     - '*'
   pull_request:
+    branches:
+    - main
+    - dev
 
 jobs:
   initial_checks:
@@ -23,7 +27,6 @@ jobs:
     uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
     with:
       display: true
-      coverage: codecov
       # Linux PyQt 5.15 and 6.x installations require apt-getting xcb and EGL deps
       # and headless X11 display
       libraries: |
@@ -54,6 +57,6 @@ jobs:
       # Setup PyQt5 deps and headless X server as per pyvista/setup-headless-display-action@v1
       libraries: '^libxcb.*-dev libxkbcommon-x11-dev xvfb'
       test_extras: 'test,qt'
-      test_command: Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 & sleep 3; DISPLAY=:99.0 pytest --pyargs glue_vispy_viewers
+      test_command: Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 & sleep 3; DISPLAY=:99.0 pytest --pyargs glue_small_multiples
     secrets:
       pypi_token: ${{ secrets.pypi_token }}s
