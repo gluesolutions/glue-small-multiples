@@ -19,4 +19,3 @@ class SmallMultiplesOptionsWidget(QtWidgets.QWidget):
         self._connections = autoconnect_callbacks_to_qt(viewer_state, self.ui)
 
         self.viewer_state = viewer_state
-        self.session = session
