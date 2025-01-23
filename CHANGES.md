@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.3 - 2025-01-23
+
+Update to work with recent version of glue-core and glue-qt.
+
 ## v1.2.0 - 2023-06-12
 
 Remove explicit dependence on glue-core, and improve CI and tests.
@@ -18,8 +22,9 @@ First pypi release
 
 ### Bug Fixes
 
-```- Subsets respect zorder
+```-
 - Plot styles survive save/restore
+
 ```
 ## v1.0
 
