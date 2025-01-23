@@ -30,7 +30,8 @@ jobs:
         apt:
           - '^libxcb.*-dev'
           - libxkbcommon-x11-dev
-          - libegl1-mesa
+          - libegl1
+          - libglx-mesa0 
           - libopenblas-dev
           - libhdf5-dev
         brew:
