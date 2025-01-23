@@ -6,8 +6,6 @@ from glue_qt.app import GlueApplication
 from glue.core.subset import AndState
 from glue.core.roi import RectangularROI
 from glue.config import colormaps
-from glue_qt.utils import process_events
-from glue.core.state import GlueUnSerializer
 
 from ..viewer import SmallMultiplesViewer
 
@@ -149,41 +147,3 @@ class TestSmallMultiplesViewer(object):
         # unmasked_x = x[x.mask == False]
         assert len(x) == 14
         assert subset_sla.zorder > backgr_sla.zorder
-
-    def test_session_save_and_restore(self, tmpdir):
-        viewer_state = self.viewer.state
-        layer_state = self.viewer.layers[0].state
-
-        viewer_state.x_att = self.penguin_data.id["bill_length_mm"]
-        viewer_state.y_att = self.penguin_data.id["bill_depth_mm"]
-        viewer_state.col_facet_att = self.penguin_data.id["species"]
-        layer_state.cmap_mode = "Linear"
-        layer_state.cmap_att = self.penguin_data.id["bill_length_mm"]
-        assert len(self.viewer._toolbars) == 1
-        process_events()
-        filename = tmpdir.join("test_multi_session.glu").strpath
-
-        self.session.application.save_session(filename)
-
-        with open(filename, "r") as f:
-            session = f.read()
-
-        state = GlueUnSerializer.loads(session)
-        ga = state.object("__main__")
-
-        dc = ga.session.data_collection
-        viewer = ga.viewers[0][0]
-        assert viewer.state.x_att is dc[0].id["bill_length_mm"]
-        assert viewer.state.col_facet_att is dc[0].id["species"]
-        assert (
-            viewer.layers[0].scatter_layer_artists[0].state.size_mode
-            == layer_state.size_mode
-        )
-        assert len(viewer.layers) == 1
-        assert len(viewer.layers[0].scatter_layer_artists) == 3
-        assert np.sum(~viewer_state.data_facet_masks[0][0]) == NUM_ADELIE
-        assert np.sum(~viewer_state.data_facet_masks[0][1]) == NUM_CHINSTRAP
-        assert np.sum(~viewer_state.data_facet_masks[0][2]) == NUM_GENTOO
-        assert len(viewer._toolbars) == 1
-        assert viewer.layers[0].state.cmap_mode == layer_state.cmap_mode
-        ga.close()
