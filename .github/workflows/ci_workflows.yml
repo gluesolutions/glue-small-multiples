@@ -30,6 +30,8 @@ jobs:
         apt:
           - '^libxcb.*-dev'
           - libxkbcommon-x11-dev
+          - libegl1
+          - libglx-mesa0 
           - libopenblas-dev
           - libhdf5-dev
         brew:
@@ -37,16 +39,12 @@ jobs:
 
       envs: |
         # Standard tests
-        - linux: py38-test
         - linux: py310-test-pyqt6
         - linux: py311-test-dev-pyqt6
 
-        - macos: py38-test
-        - macos: py39-test-dev
         - macos: py310-test-pyqt6
+        - macos: py311-test-pyqt6
 
-        - windows: py38-test
-        - windows: py39-test-dev
         - windows: py310-test-pyqt6
 
   publish:
