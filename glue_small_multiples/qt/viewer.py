@@ -7,11 +7,10 @@ from glue.core import roi
 from glue.core.subset import roi_to_subset_state
 
 from glue.utils import defer_draw, decorate_all_methods
-from glue.viewers.matplotlib.qt.data_viewer import MatplotlibDataViewer
+from glue_qt.viewers.matplotlib.data_viewer import MatplotlibDataViewer
 from glue.viewers.matplotlib.toolbar_mode import ToolbarModeBase
-from glue.core.roi_pretransforms import ProjectionMplTransform
-
 from glue.viewers.scatter.viewer import MatplotlibScatterMixin
+from glue.core.roi_pretransforms import ProjectionMplTransform
 
 from glue_small_multiples.utils import PanTrackerMixin
 from glue_small_multiples.layer_artist import SmallMultiplesLayerArtist

@@ -2,11 +2,11 @@ import os
 
 import numpy as np
 from glue.core import data_factories as df
-from glue.app.qt import GlueApplication
+from glue_qt.app import GlueApplication
 from glue.core.subset import AndState
 from glue.core.roi import RectangularROI
 from glue.config import colormaps
-from glue.utils.qt import process_events
+from glue_qt.utils import process_events
 from glue.core.state import GlueUnSerializer
 
 from ..viewer import SmallMultiplesViewer

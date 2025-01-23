@@ -1,8 +1,8 @@
 import os
 
 from glue.core import data_factories as df
-from glue.app.qt import GlueApplication
-from glue.utils.qt import process_events
+from glue_qt.app import GlueApplication
+from glue_qt.utils import process_events
 
 from glue_small_multiples.qt.viewer import SmallMultiplesViewer
 

@@ -1,5 +1,5 @@
 from glue.core import Data
-from glue.app.qt import GlueApplication
+from glue_qt.app import GlueApplication
 from glue.core.state import GlueUnSerializer
 
 from glue_small_multiples.qt.viewer import SmallMultiplesViewer
